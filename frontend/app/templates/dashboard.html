@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Dashboard</h1>
+    <span class="text-muted">{{ networth.as_of_date if networth else 'N/A' }}</span>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card card-stat success">
+            <div class="card-body">
+                <div class="stat-label">Total Assets</div>
+                <div class="stat-value text-success">
+                    RM {{ '{:,.2f}'.format(networth.total_assets) if networth else '0.00' }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat danger">
+            <div class="card-body">
+                <div class="stat-label">Total Liabilities</div>
+                <div class="stat-value text-danger">
+                    RM {{ '{:,.2f}'.format(networth.total_liabilities) if networth else '0.00' }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat">
+            <div class="card-body">
+                <div class="stat-label">Net Worth</div>
+                <div class="stat-value text-primary">
+                    RM {{ '{:,.2f}'.format(networth.net_worth) if networth else '0.00' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-3 mb-4">
+    <!-- Net Worth History Chart -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Net Worth History</h5>
+            </div>
+            <div class="card-body">
+                <div id="networthChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Asset Allocation Pie -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Asset Allocation</h5>
+            </div>
+            <div class="card-body">
+                <div id="allocationPieChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-3 mb-4">
+    <!-- Actual vs SAA Chart -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Actual vs Strategic Allocation</h5>
+            </div>
+            <div class="card-body">
+                <div id="allocationComparisonChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Income Summary -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Income Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="incomeChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('accounts.add') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Add Account
+                    </a>
+                    <a href="{{ url_for('assets.add') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Add Asset
+                    </a>
+                    <a href="{{ url_for('transactions.add') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Record Transaction
+                    </a>
+                    <a href="{{ url_for('income.add') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Record Income
+                    </a>
+                    <a href="{{ url_for('settings.snapshots') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-camera"></i> Create Snapshot
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Net Worth History Chart
+{% if history and history.history %}
+var networthOptions = {
+    series: [{
+        name: 'Assets',
+        data: [{% for item in history.history %}{{ item.total_assets }}{% if not loop.last %},{% endif %}{% endfor %}]
+    }, {
+        name: 'Liabilities',
+        data: [{% for item in history.history %}{{ item.total_liabilities }}{% if not loop.last %},{% endif %}{% endfor %}]
+    }, {
+        name: 'Net Worth',
+        data: [{% for item in history.history %}{{ item.net_worth }}{% if not loop.last %},{% endif %}{% endfor %}]
+    }],
+    chart: {
+        type: 'area',
+        height: 300,
+        toolbar: { show: false }
+    },
+    colors: ['#198754', '#dc3545', '#0d6efd'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: {
+        type: 'gradient',
+        gradient: { opacityFrom: 0.4, opacityTo: 0.1 }
+    },
+    xaxis: {
+        categories: [{% for item in history.history %}'{{ item.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        labels: { rotate: -45 }
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                return 'RM ' + val.toLocaleString();
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return 'RM ' + val.toLocaleString();
+            }
+        }
+    }
+};
+
+var networthChart = new ApexCharts(document.querySelector("#networthChart"), networthOptions);
+networthChart.render();
+{% else %}
+document.querySelector("#networthChart").innerHTML = '<div class="text-center text-muted py-5">No historical data available. Create monthly snapshots to see trends.</div>';
+{% endif %}
+
+// Asset Allocation Pie Chart
+{% if allocation and allocation.allocations %}
+var allocationPieOptions = {
+    series: [{% for item in allocation.allocations %}{{ item.total_value }}{% if not loop.last %},{% endif %}{% endfor %}],
+    labels: [{% for item in allocation.allocations %}'{{ item.asset_class_name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    colors: [{% for item in allocation.allocations %}'{{ item.color }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    chart: {
+        type: 'donut',
+        height: 300
+    },
+    plotOptions: {
+        pie: {
+            donut: {
+                size: '60%',
+                labels: {
+                    show: true,
+                    total: {
+                        show: true,
+                        label: 'Total',
+                        formatter: function(w) {
+                            return 'RM ' + w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return 'RM ' + val.toLocaleString();
+            }
+        }
+    },
+    legend: {
+        position: 'bottom'
+    }
+};
+
+var allocationPieChart = new ApexCharts(document.querySelector("#allocationPieChart"), allocationPieOptions);
+allocationPieChart.render();
+{% else %}
+document.querySelector("#allocationPieChart").innerHTML = '<div class="text-center text-muted py-5">No assets found. Add assets to see allocation.</div>';
+{% endif %}
+
+// Actual vs SAA Comparison Chart
+{% if allocation and allocation.allocations %}
+var comparisonOptions = {
+    series: [{
+        name: 'Actual',
+        data: [{% for item in allocation.allocations %}{{ item.percentage | round(1) }}{% if not loop.last %},{% endif %}{% endfor %}]
+    }, {
+        name: 'Target (SAA)',
+        data: [{% for item in allocation.allocations %}{{ item.target_percentage }}{% if not loop.last %},{% endif %}{% endfor %}]
+    }],
+    chart: {
+        type: 'bar',
+        height: 300,
+        toolbar: { show: false }
+    },
+    colors: ['#0d6efd', '#6c757d'],
+    plotOptions: {
+        bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            borderRadius: 4
+        }
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+        categories: [{% for item in allocation.allocations %}'{{ item.asset_class_name }}'{% if not loop.last %},{% endif %}{% endfor %}]
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                return val.toFixed(0) + '%';
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return val.toFixed(1) + '%';
+            }
+        }
+    }
+};
+
+var comparisonChart = new ApexCharts(document.querySelector("#allocationComparisonChart"), comparisonOptions);
+comparisonChart.render();
+{% else %}
+document.querySelector("#allocationComparisonChart").innerHTML = '<div class="text-center text-muted py-5">No allocation data available.</div>';
+{% endif %}
+
+// Income Summary Chart
+{% if income_summary and income_summary.by_type %}
+var incomeOptions = {
+    series: [{% for type, amount in income_summary.by_type.items() %}{{ amount }}{% if not loop.last %},{% endif %}{% endfor %}],
+    labels: [{% for type, amount in income_summary.by_type.items() %}'{{ type | capitalize }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    chart: {
+        type: 'pie',
+        height: 300
+    },
+    colors: ['#198754', '#0d6efd', '#ffc107', '#17a2b8'],
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return 'RM ' + val.toLocaleString();
+            }
+        }
+    },
+    legend: {
+        position: 'bottom'
+    }
+};
+
+var incomeChart = new ApexCharts(document.querySelector("#incomeChart"), incomeOptions);
+incomeChart.render();
+{% else %}
+document.querySelector("#incomeChart").innerHTML = '<div class="text-center text-muted py-5">No income recorded. Add dividend or rental income to see summary.</div>';
+{% endif %}
+</script>
+{% endblock %}

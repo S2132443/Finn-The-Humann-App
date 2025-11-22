@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Transaction{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Record Transaction</h1>
+    <a href="{{ url_for('transactions.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="account_id" class="form-label">Account *</label>
+                    <select class="form-select" id="account_id" name="account_id" required>
+                        <option value="">Select account...</option>
+                        {% for account in accounts %}
+                        <option value="{{ account.id }}">
+                            {{ account.name }} ({{ account.currency }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="transaction_type" class="form-label">Transaction Type *</label>
+                    <select class="form-select" id="transaction_type" name="transaction_type" required>
+                        <option value="">Select type...</option>
+                        <option value="deposit">Deposit</option>
+                        <option value="withdrawal">Withdrawal</option>
+                        <option value="transfer_in">Transfer In</option>
+                        <option value="transfer_out">Transfer Out</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="amount" class="form-label">Amount *</label>
+                    <input type="number" class="form-control" id="amount" name="amount" 
+                           step="0.01" required placeholder="0.00">
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="currency" class="form-label">Currency</label>
+                    <select class="form-select" id="currency" name="currency">
+                        <option value="MYR" selected>MYR</option>
+                        <option value="USD">USD</option>
+                        <option value="SGD">SGD</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="transaction_date" class="form-label">Date *</label>
+                    <input type="date" class="form-control" id="transaction_date" name="transaction_date" 
+                           required value="{{ today }}">
+                </div>
+                
+                <div class="col-12">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="2"
+                              placeholder="Optional notes about this transaction"></textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> Record Transaction
+                </button>
+                <a href="{{ url_for('transactions.index') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Set default date to today
+if (!document.getElementById('transaction_date').value) {
+    document.getElementById('transaction_date').valueAsDate = new Date();
+}
+</script>
+{% endblock %}
