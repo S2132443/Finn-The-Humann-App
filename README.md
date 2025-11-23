@@ -1,4 +1,4 @@
-# Finn - Investment Portfolio Tracking Platform
+# Finn-The-Humann
 
 A comprehensive investment tracking platform for individuals to monitor portfolio performance and combined net worth. Track true investment returns using TWRR (Time-Weighted Rate of Return) and IRR calculations.
 
