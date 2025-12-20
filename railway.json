@@ -1,5 +1,8 @@
 {
   "build": {
-    "builder": "docker-compose"
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "docker-compose up --build"
   }
 }
