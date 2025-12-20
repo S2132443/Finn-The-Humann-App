@@ -13,8 +13,9 @@ COPY . .
 ENV FLASK_APP=app
 ENV FLASK_ENV=development
 
-# Expose port
+# Expose port (Railway will set PORT env var)
 EXPOSE 5000
 
-# Run the application
-CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000"]
+# Run the application with gunicorn for production
+# Railway sets PORT environment variable, default to 5000 for local dev
+CMD gunicorn -w 4 -b 0.0.0.0:${PORT:-5000} 'app:create_app()'
