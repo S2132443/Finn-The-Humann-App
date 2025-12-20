@@ -1,8 +1,7 @@
 # Railway configuration for Backend Service (FastAPI)
 
 [build]
-builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+builder = "DOCKERFILE"
 
 [deploy]
 startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
