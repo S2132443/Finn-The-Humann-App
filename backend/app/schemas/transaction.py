@@ -8,7 +8,7 @@ from datetime import datetime, date
 
 class TransactionBase(BaseModel):
     """Base transaction schema."""
-    
+
     account_id: UUID
     transaction_type: str = Field(..., min_length=1, max_length=50)  # deposit, withdrawal, transfer, fee
     amount: float
@@ -16,6 +16,7 @@ class TransactionBase(BaseModel):
     transaction_date: date
     description: Optional[str] = None
     reference: Optional[str] = Field(None, max_length=255)
+    asset_class_id: Optional[UUID] = None
 
 
 class TransactionCreate(TransactionBase):

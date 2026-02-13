@@ -91,6 +91,82 @@
             </div>
             <div class="card-body">
                 <div id="incomeChart" class="chart-container"></div>
+                {% if income_summary and income_summary.by_asset_class %}
+                <hr class="my-3">
+                <h6 class="text-muted small mb-2">Income by Asset Class</h6>
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        {% for class_name, amount in income_summary.by_asset_class.items() %}
+                        <tr>
+                            <td>{{ class_name }}</td>
+                            <td class="text-end">RM {{ '{:,.2f}'.format(amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3: YTD Performance -->
+<div class="row g-3 mb-4">
+    <!-- YTD Performance Summary -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">YTD Performance (Modified Dietz)</h5>
+            </div>
+            <div class="card-body">
+                {% if modified_dietz and modified_dietz.total_days > 0 %}
+                <div class="text-center mb-3">
+                    <span class="display-5 fw-bold {% if modified_dietz.return_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ '{:+.2f}'.format(modified_dietz.return_percentage) }}%
+                    </span>
+                    <div class="text-muted small mt-1">
+                        {{ modified_dietz.period_start }} to {{ modified_dietz.period_end }}
+                    </div>
+                </div>
+                {% if modified_dietz.per_class_returns %}
+                <table class="table table-sm table-borderless mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-muted small">Asset Class</th>
+                            <th class="text-muted small text-end">Return</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cr in modified_dietz.per_class_returns %}
+                        {% if cr.beginning_market_value > 0 or cr.ending_market_value > 0 %}
+                        <tr>
+                            <td>{{ cr.asset_class_name }}</td>
+                            <td class="text-end {% if cr.return_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ '{:+.2f}'.format(cr.return_percentage) }}%
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    No snapshot data available. Create at least 2 monthly snapshots to calculate returns.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- YTD Cumulative Return Line Chart -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">YTD Cumulative Return</h5>
+            </div>
+            <div class="card-body">
+                <div id="dailyReturnChart" class="chart-container"></div>
             </div>
         </div>
     </div>
@@ -300,6 +376,67 @@ var incomeChart = new ApexCharts(document.querySelector("#incomeChart"), incomeO
 incomeChart.render();
 {% else %}
 document.querySelector("#incomeChart").innerHTML = '<div class="text-center text-muted py-5">No income recorded. Add dividend or rental income to see summary.</div>';
+{% endif %}
+
+// YTD Cumulative Return Chart (stepline)
+{% if daily_series and daily_series.series and daily_series.series|length > 1 %}
+var dailyReturnOptions = {
+    series: [{
+        name: 'Cumulative Return',
+        data: [{% for pt in daily_series.series %}{{ pt.cumulative_return }}{% if not loop.last %},{% endif %}{% endfor %}]
+    }],
+    chart: {
+        type: 'area',
+        height: 300,
+        toolbar: { show: false }
+    },
+    colors: ['#0d6efd'],
+    stroke: {
+        curve: 'stepline',
+        width: 2
+    },
+    fill: {
+        type: 'gradient',
+        gradient: { opacityFrom: 0.3, opacityTo: 0.05 }
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+        categories: [{% for pt in daily_series.series %}'{{ pt.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        type: 'datetime',
+        labels: {
+            datetimeUTC: false,
+            format: 'MMM dd'
+        },
+        tickAmount: 6
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                return val.toFixed(2) + '%';
+            }
+        }
+    },
+    tooltip: {
+        x: { format: 'yyyy-MM-dd' },
+        y: {
+            formatter: function(val) {
+                return val.toFixed(2) + '%';
+            }
+        }
+    },
+    annotations: {
+        yaxis: [{
+            y: 0,
+            borderColor: '#999',
+            strokeDashArray: 4,
+            label: { text: '0%', style: { color: '#999', background: 'transparent' } }
+        }]
+    }
+};
+var dailyReturnChart = new ApexCharts(document.querySelector("#dailyReturnChart"), dailyReturnOptions);
+dailyReturnChart.render();
+{% else %}
+document.querySelector("#dailyReturnChart").innerHTML = '<div class="text-center text-muted py-5">No daily performance data. Create multiple snapshots to see cumulative returns.</div>';
 {% endif %}
 </script>
 {% endblock %}

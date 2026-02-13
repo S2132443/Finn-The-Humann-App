@@ -22,8 +22,10 @@ class Transaction(Base):
     transaction_date = Column(Date, nullable=False)
     description = Column(Text)
     reference = Column(String(255))
+    asset_class_id = Column(UUID(as_uuid=True), ForeignKey("asset_classes.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
+
     # Relationships
     account = relationship("Account", back_populates="transactions")
+    asset_class = relationship("AssetClass")
     currency_rel = relationship("Currency", foreign_keys=[currency])

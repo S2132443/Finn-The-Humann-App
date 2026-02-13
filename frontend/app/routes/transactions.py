@@ -36,7 +36,8 @@ def add():
                 'amount': float(request.form['amount']),
                 'currency': request.form.get('currency', 'MYR'),
                 'transaction_date': request.form['transaction_date'],
-                'description': request.form.get('description') or None
+                'description': request.form.get('description') or None,
+                'asset_class_id': request.form.get('asset_class_id') or None
             }
             
             with httpx.Client(timeout=10.0) as client:
@@ -50,15 +51,23 @@ def add():
         except Exception as e:
             flash(f'Error: {str(e)}', 'danger')
     
-    # Get accounts for form
+    # Get accounts and asset classes for form
     try:
         with httpx.Client(timeout=10.0) as client:
             accounts_resp = client.get(f"{get_api_url()}/api/v1/accounts")
             accounts = accounts_resp.json() if accounts_resp.status_code == 200 else []
+            classes_resp = client.get(f"{get_api_url()}/api/v1/assets/classes")
+            asset_classes = classes_resp.json() if classes_resp.status_code == 200 else []
     except:
         accounts = []
-    
-    return render_template('transactions/form.html', transaction=None, accounts=accounts)
+        asset_classes = []
+
+    return render_template(
+        'transactions/form.html',
+        transaction=None,
+        accounts=accounts,
+        asset_classes=asset_classes
+    )
 
 
 @bp.route('/<transaction_id>/delete', methods=['POST'])

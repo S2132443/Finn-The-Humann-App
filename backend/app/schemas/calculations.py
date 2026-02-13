@@ -3,6 +3,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date
+from uuid import UUID
 
 
 class NetWorthResponse(BaseModel):
@@ -43,10 +44,55 @@ class TWRRResponse(BaseModel):
 
 class YieldResponse(BaseModel):
     """Yield calculation response schema."""
-    
+
     total_income: float
     average_portfolio_value: float
     yield_percentage: float
     period_start: date
     period_end: date
     annualized_yield: Optional[float] = None
+
+
+class AssetClassReturn(BaseModel):
+    """Per-asset-class return data for Modified Dietz."""
+
+    asset_class_id: UUID
+    asset_class_name: str
+    beginning_market_value: float
+    ending_market_value: float
+    net_cashflow: float
+    income: float
+    weighted_cashflow: float
+    return_percentage: float
+
+
+class ModifiedDietzResponse(BaseModel):
+    """Modified Dietz return response schema."""
+
+    return_percentage: float
+    beginning_market_value: float
+    ending_market_value: float
+    net_cashflow: float
+    income: float
+    weighted_cashflow: float
+    period_start: date
+    period_end: date
+    total_days: int
+    per_class_returns: Optional[List[AssetClassReturn]] = None
+
+
+class DailyReturnPoint(BaseModel):
+    """Single point in a daily performance series."""
+
+    date: date
+    cumulative_return: float  # Percentage
+
+
+class DailyPerformanceSeriesResponse(BaseModel):
+    """Daily step-function cumulative return series."""
+
+    series: List[DailyReturnPoint]
+    period_start: date
+    period_end: date
+    asset_class_id: Optional[UUID] = None
+    asset_class_name: Optional[str] = None

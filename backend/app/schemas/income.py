@@ -37,8 +37,9 @@ class IncomeResponse(IncomeBase):
 
 class IncomeSummary(BaseModel):
     """Income summary for dashboard."""
-    
+
     total_income: float
     by_type: dict[str, float]
     by_month: List[dict]
+    by_asset_class: Optional[dict[str, float]] = None
     yield_percentage: Optional[float] = None

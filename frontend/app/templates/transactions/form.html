@@ -58,6 +58,17 @@
                            required value="{{ today }}">
                 </div>
                 
+                <div class="col-md-6">
+                    <label for="asset_class_id" class="form-label">Asset Class</label>
+                    <select class="form-select" id="asset_class_id" name="asset_class_id">
+                        <option value="">None (general cashflow)</option>
+                        {% for ac in asset_classes %}
+                        <option value="{{ ac.id }}">{{ ac.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Optional: assign this cashflow to a specific asset class for Modified Dietz returns.</div>
+                </div>
+
                 <div class="col-12">
                     <label for="description" class="form-label">Description</label>
                     <textarea class="form-control" id="description" name="description" rows="2"

@@ -15,9 +15,12 @@ from app.models.income import Income
 from app.models.snapshot import MonthlySnapshot
 from app.models.currency import Currency
 from app.models.allocation import StrategicAllocation
+from app.models.snapshot import AssetSnapshot
 from app.schemas.calculations import (
     NetWorthResponse, NetWorthHistory, NetWorthHistoryItem,
-    TWRRResponse, YieldResponse
+    TWRRResponse, YieldResponse,
+    AssetClassReturn, ModifiedDietzResponse,
+    DailyReturnPoint, DailyPerformanceSeriesResponse
 )
 from app.schemas.allocation import AllocationResponse, AllocationComparison
 from app.config import settings
@@ -311,4 +314,309 @@ def calculate_yield(
         period_start=start_date,
         period_end=end_date,
         annualized_yield=annualized_yield
+    )
+
+
+# =============================================
+# Modified Dietz Helpers
+# =============================================
+
+
+def get_snapshot_market_value_by_class(
+    db: Session,
+    snapshot: MonthlySnapshot,
+    asset_class_id=None,
+) -> float:
+    """Sum asset_snapshots.value_in_myr for a snapshot, optionally filtered by class."""
+    query = db.query(func.coalesce(func.sum(AssetSnapshot.value_in_myr), 0)).filter(
+        AssetSnapshot.monthly_snapshot_id == snapshot.id
+    )
+    if asset_class_id:
+        query = query.filter(AssetSnapshot.asset_class_id == asset_class_id)
+    return float(query.scalar())
+
+
+def compute_weighted_cashflows(
+    db: Session,
+    start_date: date,
+    end_date: date,
+    total_days: int,
+    asset_class_id=None,
+) -> tuple[float, float]:
+    """Compute net cashflow and time-weighted cashflow for the period.
+
+    Returns (net_cashflow, weighted_cashflow).
+    """
+    query = db.query(Transaction).filter(
+        Transaction.transaction_date > start_date,
+        Transaction.transaction_date <= end_date,
+    )
+    if asset_class_id:
+        query = query.filter(Transaction.asset_class_id == asset_class_id)
+
+    net_cf = 0.0
+    weighted_cf = 0.0
+
+    for txn in query.all():
+        amount_myr = float(txn.amount) * get_exchange_rate(db, txn.currency)
+
+        if txn.transaction_type in ("deposit", "transfer_in"):
+            signed_amount = amount_myr
+        elif txn.transaction_type in ("withdrawal", "transfer_out"):
+            signed_amount = -amount_myr
+        else:
+            signed_amount = -amount_myr  # fees are outflows
+
+        net_cf += signed_amount
+
+        days_remaining = (end_date - txn.transaction_date).days
+        weight = days_remaining / total_days if total_days > 0 else 0
+        weighted_cf += signed_amount * weight
+
+    return net_cf, weighted_cf
+
+
+def compute_period_income(
+    db: Session,
+    start_date: date,
+    end_date: date,
+    asset_class_id=None,
+) -> float:
+    """Total income (in MYR) for the period, optionally by asset class."""
+    query = db.query(Income).filter(
+        Income.income_date > start_date,
+        Income.income_date <= end_date,
+    )
+
+    if asset_class_id:
+        # Income -> Asset -> asset_class_id
+        query = query.join(Income.asset).filter(
+            Asset.asset_class_id == asset_class_id
+        )
+
+    total = 0.0
+    for record in query.all():
+        total += float(record.amount) * get_exchange_rate(db, record.currency)
+    return total
+
+
+def compute_modified_dietz(
+    beginning_mv: float,
+    ending_mv: float,
+    net_cf: float,
+    income: float,
+    weighted_cf: float,
+) -> float:
+    """Apply the Modified Dietz formula and return percentage."""
+    denominator = beginning_mv + weighted_cf
+    if denominator <= 0:
+        return 0.0
+    return ((ending_mv - beginning_mv - net_cf - income) / denominator) * 100
+
+
+def find_snapshot_on_or_before(db: Session, target_date: date) -> MonthlySnapshot | None:
+    """Find the closest snapshot on or before the given date."""
+    return (
+        db.query(MonthlySnapshot)
+        .filter(MonthlySnapshot.snapshot_date <= target_date)
+        .order_by(MonthlySnapshot.snapshot_date.desc())
+        .first()
+    )
+
+
+@router.get("/returns/modified-dietz", response_model=ModifiedDietzResponse)
+def calculate_modified_dietz(
+    start_date: date = None,
+    end_date: date = None,
+    asset_class_id: str = None,
+    db: Session = Depends(get_db),
+):
+    """Calculate Modified Dietz return for the portfolio or a single asset class.
+
+    Modified Dietz adjusts for the timing of cash flows, giving a more
+    accurate return than simple gain/loss when deposits and withdrawals
+    occur throughout the period.
+
+    Formula:
+        Return = (End MV - Beg MV - Net CF - Income)
+                 / (Beg MV + Weighted CF)
+    """
+    if not end_date:
+        end_date = date.today()
+    if not start_date:
+        start_date = date(end_date.year, 1, 1)
+
+    # Resolve optional asset class filter
+    from uuid import UUID as PyUUID
+
+    ac_id = None
+    if asset_class_id:
+        try:
+            ac_id = PyUUID(asset_class_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid asset_class_id format")
+
+    begin_snapshot = find_snapshot_on_or_before(db, start_date)
+    end_snapshot = find_snapshot_on_or_before(db, end_date)
+
+    if not begin_snapshot or not end_snapshot or begin_snapshot.id == end_snapshot.id:
+        return ModifiedDietzResponse(
+            return_percentage=0.0,
+            beginning_market_value=0.0,
+            ending_market_value=0.0,
+            net_cashflow=0.0,
+            income=0.0,
+            weighted_cashflow=0.0,
+            period_start=start_date,
+            period_end=end_date,
+            total_days=0,
+        )
+
+    total_days = (end_snapshot.snapshot_date - begin_snapshot.snapshot_date).days
+    if total_days <= 0:
+        total_days = 1
+
+    beg_mv = get_snapshot_market_value_by_class(db, begin_snapshot, ac_id)
+    end_mv = get_snapshot_market_value_by_class(db, end_snapshot, ac_id)
+    net_cf, weighted_cf = compute_weighted_cashflows(
+        db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, total_days, ac_id
+    )
+    income = compute_period_income(
+        db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, ac_id
+    )
+
+    return_pct = compute_modified_dietz(beg_mv, end_mv, net_cf, income, weighted_cf)
+
+    # Per-class breakdown (only when not filtering by a single class)
+    per_class = None
+    if not ac_id:
+        per_class = []
+        asset_classes = (
+            db.query(AssetClass)
+            .filter(AssetClass.is_active == True)
+            .order_by(AssetClass.display_order)
+            .all()
+        )
+        for ac in asset_classes:
+            c_beg = get_snapshot_market_value_by_class(db, begin_snapshot, ac.id)
+            c_end = get_snapshot_market_value_by_class(db, end_snapshot, ac.id)
+            c_cf, c_wcf = compute_weighted_cashflows(
+                db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, total_days, ac.id
+            )
+            c_income = compute_period_income(
+                db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, ac.id
+            )
+            c_ret = compute_modified_dietz(c_beg, c_end, c_cf, c_income, c_wcf)
+            per_class.append(AssetClassReturn(
+                asset_class_id=ac.id,
+                asset_class_name=ac.name,
+                beginning_market_value=c_beg,
+                ending_market_value=c_end,
+                net_cashflow=c_cf,
+                income=c_income,
+                weighted_cashflow=c_wcf,
+                return_percentage=c_ret,
+            ))
+
+    return ModifiedDietzResponse(
+        return_percentage=return_pct,
+        beginning_market_value=beg_mv,
+        ending_market_value=end_mv,
+        net_cashflow=net_cf,
+        income=income,
+        weighted_cashflow=weighted_cf,
+        period_start=start_date,
+        period_end=end_date,
+        total_days=total_days,
+        per_class_returns=per_class,
+    )
+
+
+@router.get("/returns/daily-series", response_model=DailyPerformanceSeriesResponse)
+def get_daily_performance_series(
+    start_date: date = None,
+    end_date: date = None,
+    asset_class_id: str = None,
+    db: Session = Depends(get_db),
+):
+    """Generate a daily step-function cumulative return series.
+
+    At each snapshot date the cumulative Modified Dietz return is recalculated
+    from the period start. Between snapshots the return is carried forward,
+    producing a step-function suitable for line charts.
+    """
+    if not end_date:
+        end_date = date.today()
+    if not start_date:
+        start_date = date(end_date.year, 1, 1)
+
+    from uuid import UUID as PyUUID
+    from datetime import timedelta
+
+    ac_id = None
+    ac_name = None
+    if asset_class_id:
+        try:
+            ac_id = PyUUID(asset_class_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid asset_class_id format")
+        ac_obj = db.query(AssetClass).filter(AssetClass.id == ac_id).first()
+        if ac_obj:
+            ac_name = ac_obj.name
+
+    baseline = find_snapshot_on_or_before(db, start_date)
+    if not baseline:
+        return DailyPerformanceSeriesResponse(
+            series=[],
+            period_start=start_date,
+            period_end=end_date,
+            asset_class_id=ac_id,
+            asset_class_name=ac_name,
+        )
+
+    # Get all snapshots strictly after baseline up to end_date
+    snapshots_in_range = (
+        db.query(MonthlySnapshot)
+        .filter(
+            MonthlySnapshot.snapshot_date > baseline.snapshot_date,
+            MonthlySnapshot.snapshot_date <= end_date,
+        )
+        .order_by(MonthlySnapshot.snapshot_date)
+        .all()
+    )
+
+    beg_mv = get_snapshot_market_value_by_class(db, baseline, ac_id)
+
+    # Compute cumulative Modified Dietz at each snapshot date
+    snapshot_returns = {}
+    for snap in snapshots_in_range:
+        total_days = (snap.snapshot_date - baseline.snapshot_date).days
+        if total_days <= 0:
+            continue
+        end_mv = get_snapshot_market_value_by_class(db, snap, ac_id)
+        net_cf, weighted_cf = compute_weighted_cashflows(
+            db, baseline.snapshot_date, snap.snapshot_date, total_days, ac_id
+        )
+        income = compute_period_income(
+            db, baseline.snapshot_date, snap.snapshot_date, ac_id
+        )
+        ret = compute_modified_dietz(beg_mv, end_mv, net_cf, income, weighted_cf)
+        snapshot_returns[snap.snapshot_date] = ret
+
+    # Build daily series with step-function carry-forward
+    series = []
+    current_return = 0.0
+    day = start_date
+    while day <= end_date:
+        if day in snapshot_returns:
+            current_return = snapshot_returns[day]
+        series.append(DailyReturnPoint(date=day, cumulative_return=round(current_return, 4)))
+        day += timedelta(days=1)
+
+    return DailyPerformanceSeriesResponse(
+        series=series,
+        period_start=start_date,
+        period_end=end_date,
+        asset_class_id=ac_id,
+        asset_class_name=ac_name,
     )

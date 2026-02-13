@@ -10,10 +10,14 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 1. **Asset, Liability & Net Worth Tracker** - Track overall financial position over time
 2. **Asset Allocation** - View actual vs Strategic Asset Allocation (SAA) with variance analysis
 3. **TWRR Calculator** - True investment performance measurement
-4. **Total Investment Income** - Track dividends, rental income, interest
-5. **Yield Calculation** - Income yield metrics
+4. **Modified Dietz Returns** - Timing-adjusted portfolio and per-asset-class returns (YTD default)
+5. **Total Investment Income** - Track dividends, rental income, interest (with per-asset-class breakdown)
+6. **Yield Calculation** - Income yield metrics
+7. **Daily Performance Series** - Step-function cumulative return chart for visual tracking
 
 ### Additional Features
+- **Per-Asset-Class Returns** - See which asset classes are driving performance
+- **Transaction Asset Class Tagging** - Optionally assign cashflows to asset classes for accurate Modified Dietz
 - **Performance Attribution** - Understand what's driving returns
 - **SAA Optimization** - Strategic asset allocation suggestions
 - **Market Performances** - Benchmark comparisons
@@ -336,6 +340,20 @@ TWRR = [(1 + R1) × (1 + R2) × ... × (1 + Rn)] - 1
 
 Where R1, R2, etc. are the returns for each sub-period between cash flows.
 
+### Understanding Modified Dietz
+
+Modified Dietz is a money-weighted return method that adjusts for the timing of cash flows within a period. It is the primary return method used in the Excel specification.
+
+**Formula:**
+```
+Return = (End MV - Beg MV - Net CF - Income) / (Beg MV + Weighted CF)
+Weighted CF = CF × (Total Days - Day of CF) / Total Days
+```
+
+- Transactions can optionally be tagged with an `asset_class_id` for per-class return attribution
+- The daily performance series uses step-function interpolation between snapshots
+- Both portfolio-level and per-asset-class returns are computed in a single API call
+
 ### Multi-Currency Handling
 
 - Assets can be tracked in any currency (USD, SGD, etc.)
@@ -380,7 +398,9 @@ http://localhost:8000/api/v1
 - `GET /allocation` - Get current asset allocation
 - `GET /allocation/comparison` - Get actual vs SAA comparison
 - `GET /returns/twrr` - Calculate TWRR
-- `GET /income/summary` - Get income summary
+- `GET /returns/modified-dietz` - Calculate Modified Dietz return (YTD default, optional `asset_class_id` filter)
+- `GET /returns/daily-series` - Daily cumulative return series for charting (step-function)
+- `GET /income/summary` - Get income summary (includes `by_asset_class` breakdown)
 
 #### Snapshots
 - `GET /snapshots` - List all snapshots
@@ -484,9 +504,10 @@ Built with ApexCharts:
 1. **Net Worth Area Chart** - Assets, Liabilities, Net Worth over time
 2. **Asset Allocation Pie/Donut** - Current portfolio breakdown
 3. **Actual vs SAA Grouped Bar** - Target vs actual allocation
-4. **Allocation History Stacked Bar** - Multi-year trends
-5. **TWRR Line Chart** - Performance over time
-6. **Income Bar Chart** - Income by type and period
+4. **YTD Cumulative Return Stepline** - Daily Modified Dietz return series
+5. **YTD Performance Card** - Portfolio and per-class return percentages
+6. **Income Pie Chart** - Income by type with per-asset-class table
+7. **TWRR Line Chart** - Performance over time
 
 All charts are:
 - Interactive with tooltips

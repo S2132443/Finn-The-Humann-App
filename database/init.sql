@@ -86,6 +86,7 @@ CREATE TABLE transactions (
     transaction_date DATE NOT NULL,
     description TEXT,
     reference VARCHAR(255),
+    asset_class_id UUID REFERENCES asset_classes(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -148,6 +149,7 @@ CREATE INDEX idx_assets_account ON assets(account_id);
 CREATE INDEX idx_assets_class ON assets(asset_class_id);
 CREATE INDEX idx_transactions_account ON transactions(account_id);
 CREATE INDEX idx_transactions_date ON transactions(transaction_date);
+CREATE INDEX idx_transactions_asset_class ON transactions(asset_class_id);
 CREATE INDEX idx_income_account ON income(account_id);
 CREATE INDEX idx_income_date ON income(income_date);
 CREATE INDEX idx_snapshots_date ON monthly_snapshots(snapshot_date);

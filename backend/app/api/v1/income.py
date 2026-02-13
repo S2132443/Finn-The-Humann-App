@@ -1,7 +1,7 @@
 """Income API endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract
 from typing import List
 from uuid import UUID
@@ -70,21 +70,24 @@ def get_income_summary(
     end_date: date = None,
     db: Session = Depends(get_db)
 ):
-    """Get income summary with totals by type and month."""
-    query = db.query(Income)
-    
+    """Get income summary with totals by type, month, and asset class."""
+    query = db.query(Income).options(
+        joinedload(Income.asset).joinedload(Asset.asset_class)
+    )
+
     if start_date:
         query = query.filter(Income.income_date >= start_date)
     if end_date:
         query = query.filter(Income.income_date <= end_date)
-    
+
     income_records = query.all()
-    
+
     # Calculate totals
     total_income = 0.0
     by_type = {}
     by_month = {}
-    
+    by_asset_class = {}
+
     for record in income_records:
         # Convert to MYR if needed
         amount_myr = float(record.amount)
@@ -92,24 +95,33 @@ def get_income_summary(
             currency = db.query(Currency).filter(Currency.code == record.currency).first()
             if currency:
                 amount_myr = float(record.amount) * float(currency.exchange_rate_to_myr)
-        
+
         total_income += amount_myr
-        
+
         # By type
         if record.income_type not in by_type:
             by_type[record.income_type] = 0.0
         by_type[record.income_type] += amount_myr
-        
+
         # By month
         month_key = record.income_date.strftime("%Y-%m")
         if month_key not in by_month:
             by_month[month_key] = {"month": month_key, "total": 0.0}
         by_month[month_key]["total"] += amount_myr
-    
+
+        # By asset class (via asset -> asset_class relationship)
+        class_name = "Unassigned"
+        if record.asset and record.asset.asset_class:
+            class_name = record.asset.asset_class.name
+        if class_name not in by_asset_class:
+            by_asset_class[class_name] = 0.0
+        by_asset_class[class_name] += amount_myr
+
     return IncomeSummary(
         total_income=total_income,
         by_type=by_type,
-        by_month=list(by_month.values())
+        by_month=list(by_month.values()),
+        by_asset_class=by_asset_class
     )
 
 
