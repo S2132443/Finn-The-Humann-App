@@ -12,33 +12,11 @@ from app.database import get_db
 from app.models.asset import Asset, AssetClass
 from app.models.account import Account
 from app.models.currency import Currency
-from app.models.market_price import MarketPrice
 from app.services.calculations import get_exchange_rate
+from app.services.brokers import sync_market_price as _sync_market_price
 from app.web.dependencies import templates, flash
 
 router = APIRouter()
-
-_LUNO_CLASSES = {"Bitcoin", "Altcoin"}
-
-
-def _sync_market_price(db: Session, asset: Asset):
-    """Auto-create a market_prices row for an asset with a symbol."""
-    if not asset.symbol:
-        return
-    existing = db.query(MarketPrice).filter(MarketPrice.symbol == asset.symbol).first()
-    if existing:
-        return
-    class_name = asset.asset_class.name if asset.asset_class else ""
-    source = "luno" if class_name in _LUNO_CLASSES else "yahoo"
-    mp = MarketPrice(
-        symbol=asset.symbol,
-        name=asset.name,
-        asset_class_id=asset.asset_class_id,
-        currency=asset.currency,
-        source=source,
-    )
-    db.add(mp)
-    db.commit()
 
 
 def _get_assets_with_display_data(db: Session):
@@ -124,6 +102,7 @@ def add_submit(
     db.add(asset)
     db.commit()
     _sync_market_price(db, asset)
+    db.commit()
     flash(request, "Asset created successfully", "success")
     return RedirectResponse(url="/assets", status_code=303)
 
@@ -240,6 +219,7 @@ def edit_submit(
     asset.notes = notes or None
     db.commit()
     _sync_market_price(db, asset)
+    db.commit()
 
     flash(request, "Asset updated successfully", "success")
     return RedirectResponse(url="/assets", status_code=303)

@@ -3,17 +3,27 @@
 {% block title %}Market{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4" x-data="marketActions()">
     <h1 class="h3 mb-0">Market</h1>
-    <div class="d-flex gap-2 align-items-center" x-data="{ refreshing: false, msg: '' }">
+    <div class="d-flex gap-2 align-items-center">
         <small class="text-success" x-text="msg"></small>
+        <!-- Broker sync buttons (only visible for configured brokers) -->
+        <template x-for="broker in brokers" :key="broker.name">
+            <button x-show="broker.configured"
+                    class="btn btn-outline-primary"
+                    :disabled="broker.syncing"
+                    @click="syncBroker(broker)">
+                <span x-show="!broker.syncing">
+                    <i class="bi bi-arrow-repeat"></i> Sync <span x-text="broker.display_name"></span>
+                </span>
+                <span x-show="broker.syncing">
+                    <span class="spinner-border spinner-border-sm"></span> Syncing...
+                </span>
+            </button>
+        </template>
         <button class="btn btn-outline-success"
                 :disabled="refreshing"
-                @click="refreshing=true; msg='';
-                    fetch('/api/v1/prices/refresh', {method:'POST'})
-                    .then(r => r.json())
-                    .then(d => { msg = 'Updated ' + d.prices.updated + ' prices'; refreshing=false; setTimeout(()=>location.reload(), 1500); })
-                    .catch(e => { msg = 'Error: ' + e.message; refreshing=false; })">
+                @click="refreshPrices()">
             <span x-show="!refreshing"><i class="bi bi-arrow-clockwise"></i> Refresh Prices</span>
             <span x-show="refreshing"><span class="spinner-border spinner-border-sm"></span> Fetching...</span>
         </button>
@@ -171,4 +181,68 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function marketActions() {
+    return {
+        brokers: [],
+        refreshing: false,
+        msg: '',
+
+        init() {
+            fetch('/api/v1/brokers')
+                .then(r => r.json())
+                .then(data => {
+                    this.brokers = data.map(function(b) {
+                        b.syncing = false;
+                        return b;
+                    });
+                })
+                .catch(() => {});
+        },
+
+        refreshPrices() {
+            this.refreshing = true;
+            this.msg = '';
+            fetch('/api/v1/prices/refresh', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => {
+                    this.msg = 'Updated ' + d.prices.updated + ' prices';
+                    this.refreshing = false;
+                    setTimeout(function() { location.reload(); }, 1500);
+                })
+                .catch(e => {
+                    this.msg = 'Error: ' + e.message;
+                    this.refreshing = false;
+                });
+        },
+
+        syncBroker(broker) {
+            broker.syncing = true;
+            this.msg = '';
+            fetch('/api/v1/brokers/' + broker.name + '/sync', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.errors && d.errors.length > 0) {
+                        this.msg = d.errors[0];
+                    } else {
+                        var parts = [];
+                        if (d.created > 0) parts.push(d.created + ' created');
+                        if (d.synced > 0) parts.push(d.synced + ' updated');
+                        if (d.zeroed > 0) parts.push(d.zeroed + ' zeroed');
+                        this.msg = broker.display_name + ': ' + (parts.length > 0 ? parts.join(', ') : 'No changes');
+                    }
+                    broker.syncing = false;
+                    setTimeout(function() { location.reload(); }, 1500);
+                })
+                .catch(e => {
+                    this.msg = 'Error: ' + e.message;
+                    broker.syncing = false;
+                });
+        }
+    };
+}
+</script>
 {% endblock %}

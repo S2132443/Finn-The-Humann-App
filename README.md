@@ -18,6 +18,7 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 ### Additional Features
 - **One-Click Price Refresh** - Fetch latest prices from LUNO and Yahoo Finance with a single button
 - **Market Page** - Track price movements for portfolio holdings and watchlist symbols
+- **Broker Sync** - Auto-import balances from connected brokerages (LUNO supported, extensible to others)
 - **Bulk Price Update** - Update all asset prices/values from a single page
 - **P&L Tracking** - Profit & loss with percentage shown on the assets table
 - **Auto Exchange Rates** - Update all currency rates from a free API on demand
@@ -33,6 +34,7 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 |-------------|---------------|--------------|
 | **LUNO API** | Bitcoin, Altcoin | Fetches all MYR pairs in one call (BTC, ETH, XRP, SOL, ADA, LINK, UNI, LTC, BCH, POL, AVAX, ATOM, NEAR, ALGO) |
 | **Yahoo Finance** | MY Equities, US Equities, Gold | Batch fetch via `yfinance`. MY stocks auto-append `.KL` suffix. Gold converts USD/oz to MYR/gram |
+| **LUNO Authenticated API** | Bitcoin, Altcoin | Optional: auto-import wallet balances via API key (no manual quantity entry) |
 | **Exchange Rate API** | All currencies | Free API updates USD, SGD, EUR, GBP, JPY, AUD, CNY rates to MYR |
 | **Manual** | Unit Trust, Others | No free API available; use Bulk Update page |
 
@@ -44,6 +46,7 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 - **Database**: PostgreSQL
 - **Charts**: ApexCharts (shared JS module)
 - **Price Data**: LUNO API + yfinance
+- **Broker Sync**: luno-python SDK (extensible provider pattern)
 - **Containerization**: Docker Compose
 
 ## Quick Start (Docker)
@@ -203,6 +206,35 @@ The **Market** page (`/market`) shows all tracked symbols with:
 
 You can add any symbol to the watchlist from the Market page using the **"Add Symbol"** button.
 
+### Broker Integrations (Optional)
+
+Connect your brokerage accounts to auto-import balances instead of entering them manually. Currently supported: **LUNO**.
+
+#### Setting Up LUNO Sync
+
+1. Go to [LUNO API Keys](https://www.luno.com/wallet/security/api_keys) and create a **read-only** API key
+2. Add to your `.env` file:
+   ```
+   LUNO_API_KEY_ID=your_key_id
+   LUNO_API_KEY_SECRET=your_key_secret
+   ```
+3. Restart the application
+4. Go to **Settings** → "Broker Integrations" card shows LUNO as "Connected"
+5. Click **"Sync Balances"** to auto-import all your LUNO crypto holdings
+
+The sync will:
+- Auto-create a LUNO account if one doesn't exist
+- Create assets for each coin with balance > 0 (BTC, ETH, SOL, etc.)
+- Update quantities for existing assets
+- Zero out assets that no longer have balance
+- Auto-register symbols for price tracking on the Market page
+
+You can also sync from the **Market** page using the **"Sync LUNO"** button.
+
+#### Adding More Brokers
+
+The app uses a provider-based architecture. Each broker is a separate module in `services/brokers/`. See [LEGAL.md](LEGAL.md) for licensing considerations when adding new data sources.
+
 ### Accessing from Mobile
 
 #### Same Wi-Fi Network
@@ -276,6 +308,10 @@ http://localhost:8000/api/v1
 - `POST /market` - Add a symbol to the watchlist
 - `DELETE /market/{symbol}` - Remove a symbol from the watchlist
 
+#### Brokers
+- `GET /brokers` - List all registered broker providers with configuration status
+- `POST /brokers/{provider}/sync` - Sync balances from a specific broker (e.g., `luno`)
+
 #### Transactions
 - `GET /transactions` - List all transactions
 - `POST /transactions` - Create new transaction
@@ -316,6 +352,7 @@ Finn-The-Humann-App/
 ├── docker-compose.yml          # Docker orchestration (db + backend)
 ├── .env.example                # Environment variables template
 ├── README.md
+├── LEGAL.md                    # Licensing & distribution compliance
 │
 ├── backend/                    # FastAPI application
 │   ├── Dockerfile
@@ -343,10 +380,14 @@ Finn-The-Humann-App/
 │       │       ├── calculations.py
 │       │       ├── snapshots.py
 │       │       ├── settings.py
-│       │       └── prices.py   # Price refresh endpoint
+│       │       ├── prices.py   # Price refresh endpoint
+│       │       └── brokers.py  # Broker sync endpoints
 │       ├── services/           # Business logic (shared)
 │       │   ├── calculations.py # Net worth, returns, allocation
-│       │   └── price_fetcher.py # LUNO, Yahoo Finance, exchange rates
+│       │   ├── price_fetcher.py # LUNO, Yahoo Finance, exchange rates
+│       │   └── brokers/        # Broker integration providers
+│       │       ├── __init__.py  # Provider base class & registry
+│       │       └── luno.py      # LUNO balance sync
 │       ├── web/                # HTML page routes
 │       │   ├── dependencies.py # Templates, flash messages
 │       │   ├── dashboard.py
@@ -388,6 +429,8 @@ Finn-The-Humann-App/
 | `SECRET_KEY` | Application secret key | (required) |
 | `BASE_CURRENCY` | Default currency for aggregation | `MYR` |
 | `DEBUG` | Enable debug mode | `false` |
+| `LUNO_API_KEY_ID` | LUNO API key ID (optional) | (empty) |
+| `LUNO_API_KEY_SECRET` | LUNO API key secret (optional) | (empty) |
 
 ### Asset Classes
 
@@ -426,6 +469,17 @@ This eliminates the need for a separate frontend service. All pages and API endp
 6. `market_prices` table is updated (current → previous, new → current, change % calculated)
 7. Matching portfolio `assets` are updated (price + value recalculated)
 8. UI reloads to show fresh data
+
+### Broker Sync Flow
+
+1. User clicks **"Sync Balances"** (on Settings or Market page)
+2. `POST /api/v1/brokers/{provider}/sync` is called
+3. Provider fetches balances from external API (e.g., LUNO `get_balances()`)
+4. For each asset with balance > 0: find or create asset in portfolio
+5. Auto-create `market_prices` rows for new symbols (for price tracking)
+6. Return summary: created, updated, zeroed counts
+
+The provider pattern means adding a new broker requires only one new file in `services/brokers/` — no changes to API endpoints, UI templates, or existing logic.
 
 ### Charts
 

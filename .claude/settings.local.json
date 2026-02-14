@@ -16,7 +16,16 @@
       "WebFetch(domain:api.luno.com)",
       "Bash(docker-compose logs:*)",
       "Bash(docker-compose restart:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebFetch(domain:www.luno.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.exchangerate-api.com)",
+      "WebFetch(domain:legal.yahoo.com)",
+      "WebFetch(domain:apexcharts.com)",
+      "WebFetch(domain:guide.luno.com)",
+      "Bash(docker compose up:*)",
+      "WebFetch(domain:pypi.org)",
+      "Bash(pip install:*)"
     ]
   }
 }

@@ -7,7 +7,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 
-from app.api.v1 import accounts, assets, transactions, income, calculations, snapshots, settings as settings_router, prices
+from app.api.v1 import accounts, assets, transactions, income, calculations, snapshots, settings as settings_router, prices, brokers
+import app.services.brokers.luno  # noqa: F401 — triggers provider registration
 from app.web import dashboard as web_dashboard
 from app.web import accounts as web_accounts
 from app.web import assets as web_assets
@@ -91,6 +92,12 @@ app.include_router(
     tags=["Prices"]
 )
 
+app.include_router(
+    brokers.router,
+    prefix="/api/v1/brokers",
+    tags=["Brokers"]
+)
+
 # Web routes (HTML pages - served by FastAPI directly)
 app.include_router(web_dashboard.router, tags=["Web"])
 app.include_router(web_accounts.router, prefix="/accounts", tags=["Web"])
@@ -124,6 +131,7 @@ async def api_info():
             "returns": "/api/v1/returns",
             "snapshots": "/api/v1/snapshots",
             "settings": "/api/v1/settings",
-            "prices": "/api/v1/prices"
+            "prices": "/api/v1/prices",
+            "brokers": "/api/v1/brokers"
         }
     }

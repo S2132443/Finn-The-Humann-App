@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: list = ["http://localhost:5000", "http://127.0.0.1:5000"]
+
+    # Broker API keys (all optional — app works without them)
+    LUNO_API_KEY_ID: str = ""
+    LUNO_API_KEY_SECRET: str = ""
     
     class Config:
         env_file = ".env"

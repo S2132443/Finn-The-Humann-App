@@ -30,6 +30,9 @@ httpx==0.25.2
 # Price data
 yfinance>=0.2.31
 
+# Broker integrations (optional)
+luno-python>=0.0.9
+
 # Development
 pytest==7.4.3
 pytest-asyncio==0.21.1

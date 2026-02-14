@@ -106,6 +106,53 @@
         </div>
     </div>
     
+    <!-- Broker Integrations (data-driven from API) -->
+    <div class="col-12" x-data="brokerIntegrations()">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="bi bi-plug"></i> Broker Integrations</h5>
+            </div>
+            <div class="card-body">
+                <template x-if="loading">
+                    <p class="text-muted mb-0">Loading integrations...</p>
+                </template>
+                <template x-if="!loading && brokers.length === 0">
+                    <p class="text-muted mb-0">No broker integrations available.</p>
+                </template>
+                <template x-if="!loading && brokers.length > 0">
+                    <div class="list-group list-group-flush">
+                        <template x-for="broker in brokers" :key="broker.name">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong x-text="broker.display_name"></strong>
+                                    <span x-show="broker.configured" class="badge bg-success ms-2">Connected</span>
+                                    <span x-show="!broker.configured" class="badge bg-secondary ms-2">Not Configured</span>
+                                    <small x-show="!broker.configured" class="text-muted d-block">
+                                        Add API keys to your .env file to enable sync
+                                    </small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <small class="text-success" x-text="broker.msg"></small>
+                                    <button x-show="broker.configured"
+                                            class="btn btn-sm btn-outline-primary"
+                                            :disabled="broker.syncing"
+                                            @click="sync(broker)">
+                                        <span x-show="!broker.syncing">
+                                            <i class="bi bi-arrow-repeat"></i> Sync Balances
+                                        </span>
+                                        <span x-show="broker.syncing">
+                                            <span class="spinner-border spinner-border-sm"></span> Syncing...
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Links -->
     <div class="col-12">
         <div class="card">
@@ -125,4 +172,52 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function brokerIntegrations() {
+    return {
+        brokers: [],
+        loading: true,
+
+        init() {
+            fetch('/api/v1/brokers')
+                .then(r => r.json())
+                .then(data => {
+                    this.brokers = data.map(function(b) {
+                        b.syncing = false;
+                        b.msg = '';
+                        return b;
+                    });
+                    this.loading = false;
+                })
+                .catch(() => { this.loading = false; });
+        },
+
+        sync(broker) {
+            broker.syncing = true;
+            broker.msg = '';
+            fetch('/api/v1/brokers/' + broker.name + '/sync', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.errors && d.errors.length > 0) {
+                        broker.msg = 'Error: ' + d.errors[0];
+                    } else {
+                        var parts = [];
+                        if (d.synced > 0) parts.push(d.synced + ' updated');
+                        if (d.created > 0) parts.push(d.created + ' created');
+                        if (d.zeroed > 0) parts.push(d.zeroed + ' zeroed');
+                        broker.msg = parts.length > 0 ? parts.join(', ') : 'No changes';
+                    }
+                    broker.syncing = false;
+                })
+                .catch(e => {
+                    broker.msg = 'Error: ' + e.message;
+                    broker.syncing = false;
+                });
+        }
+    };
+}
+</script>
 {% endblock %}
