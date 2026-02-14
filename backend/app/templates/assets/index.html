@@ -5,7 +5,18 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">Assets</h1>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center" x-data="{ refreshing: false, msg: '' }">
+        <small class="text-success" x-text="msg"></small>
+        <button class="btn btn-outline-success"
+                :disabled="refreshing"
+                @click="refreshing=true; msg='';
+                    fetch('/api/v1/prices/refresh', {method:'POST'})
+                    .then(r => r.json())
+                    .then(d => { msg = 'Updated ' + d.prices.updated + ' prices'; refreshing=false; setTimeout(()=>location.reload(), 1500); })
+                    .catch(e => { msg = 'Error: ' + e.message; refreshing=false; })">
+            <span x-show="!refreshing"><i class="bi bi-arrow-clockwise"></i> Refresh Prices</span>
+            <span x-show="refreshing"><span class="spinner-border spinner-border-sm"></span> Fetching...</span>
+        </button>
         <a href="/assets/bulk-update" class="btn btn-outline-primary">
             <i class="bi bi-pencil-square"></i> Bulk Update
         </a>

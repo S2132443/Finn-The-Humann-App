@@ -7,13 +7,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 
-from app.api.v1 import accounts, assets, transactions, income, calculations, snapshots, settings as settings_router
+from app.api.v1 import accounts, assets, transactions, income, calculations, snapshots, settings as settings_router, prices
 from app.web import dashboard as web_dashboard
 from app.web import accounts as web_accounts
 from app.web import assets as web_assets
 from app.web import transactions as web_transactions
 from app.web import income as web_income
 from app.web import settings as web_settings
+from app.web import market as web_market
 
 # Create FastAPI application
 app = FastAPI(
@@ -84,6 +85,12 @@ app.include_router(
     tags=["Settings"]
 )
 
+app.include_router(
+    prices.router,
+    prefix="/api/v1/prices",
+    tags=["Prices"]
+)
+
 # Web routes (HTML pages - served by FastAPI directly)
 app.include_router(web_dashboard.router, tags=["Web"])
 app.include_router(web_accounts.router, prefix="/accounts", tags=["Web"])
@@ -91,6 +98,7 @@ app.include_router(web_assets.router, prefix="/assets", tags=["Web"])
 app.include_router(web_transactions.router, prefix="/transactions", tags=["Web"])
 app.include_router(web_income.router, prefix="/income", tags=["Web"])
 app.include_router(web_settings.router, prefix="/settings", tags=["Web"])
+app.include_router(web_market.router, prefix="/market", tags=["Web"])
 
 
 @app.get("/health", tags=["Health"])
@@ -115,6 +123,7 @@ async def api_info():
             "allocation": "/api/v1/allocation",
             "returns": "/api/v1/returns",
             "snapshots": "/api/v1/snapshots",
-            "settings": "/api/v1/settings"
+            "settings": "/api/v1/settings",
+            "prices": "/api/v1/prices"
         }
     }

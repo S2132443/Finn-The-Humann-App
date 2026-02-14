@@ -27,6 +27,9 @@ scipy==1.11.4
 python-dotenv==1.0.0
 httpx==0.25.2
 
+# Price data
+yfinance>=0.2.31
+
 # Development
 pytest==7.4.3
 pytest-asyncio==0.21.1

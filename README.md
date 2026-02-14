@@ -16,13 +16,25 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 7. **Daily Performance Series** - Step-function cumulative return chart for visual tracking
 
 ### Additional Features
+- **One-Click Price Refresh** - Fetch latest prices from LUNO and Yahoo Finance with a single button
+- **Market Page** - Track price movements for portfolio holdings and watchlist symbols
 - **Bulk Price Update** - Update all asset prices/values from a single page
 - **P&L Tracking** - Profit & loss with percentage shown on the assets table
+- **Auto Exchange Rates** - Update all currency rates from a free API on demand
 - **Per-Asset-Class Returns** - See which asset classes are driving performance
 - **Transaction Asset Class Tagging** - Optionally assign cashflows to asset classes for accurate Modified Dietz
 - **Multi-Currency Support** - Track assets in any currency, convert to MYR base
 - **Monthly Snapshots** - Historical performance tracking
 - **PWA Support** - Install as mobile app
+
+### Supported Data Sources
+
+| Data Source | Asset Classes | How It Works |
+|-------------|---------------|--------------|
+| **LUNO API** | Bitcoin, Altcoin | Fetches all MYR pairs in one call (BTC, ETH, XRP, SOL, ADA, LINK, UNI, LTC, BCH, POL, AVAX, ATOM, NEAR, ALGO) |
+| **Yahoo Finance** | MY Equities, US Equities, Gold | Batch fetch via `yfinance`. MY stocks auto-append `.KL` suffix. Gold converts USD/oz to MYR/gram |
+| **Exchange Rate API** | All currencies | Free API updates USD, SGD, EUR, GBP, JPY, AUD, CNY rates to MYR |
+| **Manual** | Unit Trust, Others | No free API available; use Bulk Update page |
 
 ## Technology Stack
 
@@ -31,6 +43,7 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 - **Interactivity**: Alpine.js
 - **Database**: PostgreSQL
 - **Charts**: ApexCharts (shared JS module)
+- **Price Data**: LUNO API + yfinance
 - **Containerization**: Docker Compose
 
 ## Quick Start (Docker)
@@ -93,6 +106,7 @@ docker-compose down -v
    ```bash
    psql -U postgres -d finn_db -f database/migrations/001_add_altcoin_unit_trust.sql
    psql -U postgres -d finn_db -f database/migrations/002_add_asset_class_id_to_transactions.sql
+   psql -U postgres -d finn_db -f database/migrations/003_add_market_prices.sql
    ```
 
 ### Backend Setup
@@ -130,32 +144,36 @@ docker-compose down -v
 
 ### Quick Start (5 minutes)
 
-#### Step 1: Create Your First Account
+#### Step 1: Create Accounts
 
-1. Go to **Accounts** in the sidebar
-2. Click **"Add Account"**
-3. Fill in:
-   - Name: `My Investment Portfolio`
-   - Institution: `Rakuten Trade`
-   - Currency: `MYR`
-   - Leave "is_liability" unchecked
-4. Click **Create Account**
+Go to **Accounts > Add Account** and create one per institution:
+
+| Account Name | Institution | Type | Currency |
+|-------------|-------------|------|----------|
+| Maybank Gold | Maybank | Savings Account | MYR |
+| Moomoo | Moomoo | Trading Account | MYR |
+| Maybank Unit Trust | Maybank | Savings Account | MYR |
+| LUNO | LUNO | Crypto Wallet | MYR |
 
 #### Step 2: Add Your Assets
 
-Go to **Assets > Add Asset** and create entries:
+Go to **Assets > Add Asset** and create entries. The **symbol** field is important for automatic price fetching:
 
-| Asset Name | Symbol | Account | Asset Class | Quantity | Value (RM) |
-|------------|--------|---------|-------------|----------|------------|
-| Gold Bar | GOLD | My Investment Portfolio | Gold | 1 | 10,000 |
-| Apple Inc | AAPL | My Investment Portfolio | US Equities | 50 | 20,000 |
-| Cash Reserve | CASH | My Investment Portfolio | Cash | - | 5,000 |
-| Bitcoin | BTC | My Investment Portfolio | Bitcoin | 0.5 | 20,000 |
-| Maybank | MAYBANK | My Investment Portfolio | MY Equities | 1000 | 40,000 |
+| Asset Name | Symbol | Account | Asset Class | Quantity |
+|------------|--------|---------|-------------|----------|
+| Gold Savings | XAUUSD | Maybank Gold | Gold | 10 |
+| Maybank Shares | 1155 | Moomoo | MY Equities | 1000 |
+| Apple Inc | AAPL | Moomoo | US Equities | 50 |
+| Bitcoin | BTC | LUNO | Bitcoin | 0.5 |
+| Ethereum | ETH | LUNO | Altcoin | 5 |
+| Solana | SOL | LUNO | Altcoin | 100 |
+| Unit Trust Fund | - | Maybank Unit Trust | Unit Trust | 5000 |
 
-Use **Bulk Update** to quickly update all prices from one page.
+#### Step 3: Fetch Prices
 
-#### Step 3: Set Strategic Asset Allocation (SAA)
+Click **"Refresh Prices"** on the Assets page or visit the **Market** page and click **"Refresh Prices"**. This fetches live prices from LUNO and Yahoo Finance and updates all assets automatically.
+
+#### Step 4: Set Strategic Asset Allocation (SAA)
 
 1. Go to **Settings** in the top navbar
 2. Click **"Edit SAA"**
@@ -163,7 +181,7 @@ Use **Bulk Update** to quickly update all prices from one page.
 4. Set effective date to today
 5. Click **Save Allocation**
 
-#### Step 4: Create Historical Snapshots
+#### Step 5: Create Historical Snapshots
 
 To see the Net Worth History chart:
 
@@ -171,9 +189,19 @@ To see the Net Worth History chart:
 2. Click **"Generate Snapshot"**
 3. Create snapshots for past months to build history
 
-#### Step 5: Record Income (Optional)
+#### Step 6: Record Income (Optional)
 
 Go to **Income > Record Income** to log dividends, interest, and rental income.
+
+### Market Page
+
+The **Market** page (`/market`) shows all tracked symbols with:
+- Current price and price change since last refresh
+- Green/red indicators for price movement
+- Owned quantity and value for portfolio holdings
+- Watchlist symbols you don't own but want to track
+
+You can add any symbol to the watchlist from the Market page using the **"Add Symbol"** button.
 
 ### Accessing from Mobile
 
@@ -240,6 +268,14 @@ http://localhost:8000/api/v1
 - `PUT /assets/bulk-update` - Bulk update prices, quantities, and values
 - `DELETE /assets/{id}` - Delete asset
 
+#### Prices
+- `POST /prices/refresh` - Fetch latest prices from LUNO + Yahoo Finance, update exchange rates, and push to portfolio assets
+
+#### Market (Watchlist)
+- `GET /market` - List all tracked symbols with prices and owned quantities
+- `POST /market` - Add a symbol to the watchlist
+- `DELETE /market/{symbol}` - Remove a symbol from the watchlist
+
 #### Transactions
 - `GET /transactions` - List all transactions
 - `POST /transactions` - Create new transaction
@@ -295,7 +331,8 @@ Finn-The-Humann-App/
 │       │   ├── income.py
 │       │   ├── snapshot.py
 │       │   ├── allocation.py
-│       │   └── currency.py
+│       │   ├── currency.py
+│       │   └── market_price.py # Price tracking & watchlist
 │       ├── schemas/            # Pydantic schemas
 │       ├── api/
 │       │   └── v1/             # JSON API endpoints
@@ -305,9 +342,11 @@ Finn-The-Humann-App/
 │       │       ├── income.py
 │       │       ├── calculations.py
 │       │       ├── snapshots.py
-│       │       └── settings.py
+│       │       ├── settings.py
+│       │       └── prices.py   # Price refresh endpoint
 │       ├── services/           # Business logic (shared)
-│       │   └── calculations.py # Net worth, returns, allocation
+│       │   ├── calculations.py # Net worth, returns, allocation
+│       │   └── price_fetcher.py # LUNO, Yahoo Finance, exchange rates
 │       ├── web/                # HTML page routes
 │       │   ├── dependencies.py # Templates, flash messages
 │       │   ├── dashboard.py
@@ -315,7 +354,8 @@ Finn-The-Humann-App/
 │       │   ├── assets.py
 │       │   ├── transactions.py
 │       │   ├── income.py
-│       │   └── settings.py
+│       │   ├── settings.py
+│       │   └── market.py       # Market/watchlist page
 │       ├── templates/          # Jinja2 templates
 │       │   ├── base.html
 │       │   ├── dashboard.html
@@ -323,7 +363,8 @@ Finn-The-Humann-App/
 │       │   ├── assets/
 │       │   ├── transactions/
 │       │   ├── income/
-│       │   └── settings/
+│       │   ├── settings/
+│       │   └── market/         # Market page template
 │       └── static/
 │           ├── js/charts.js    # Shared chart components
 │           ├── manifest.json   # PWA manifest
@@ -331,9 +372,10 @@ Finn-The-Humann-App/
 │
 └── database/
     ├── init.sql                # Initial schema + seed data
-    └── migrations/             # Incremental migrations
+    └── migrations/
         ├── 001_add_altcoin_unit_trust.sql
-        └── 002_add_asset_class_id_to_transactions.sql
+        ├── 002_add_asset_class_id_to_transactions.sql
+        └── 003_add_market_prices.sql
 ```
 
 ## Configuration
@@ -351,18 +393,18 @@ Finn-The-Humann-App/
 
 Default asset classes (configurable via Settings):
 
-| Asset Class | Color | Description |
+| Asset Class | Color | Price Source |
 |-------------|-------|-------------|
-| MY Equities | Blue | Malaysian stocks |
-| US Equities | Orange | US stocks |
-| Gold | Yellow | Gold and precious metals |
-| Bitcoin | Orange | Bitcoin |
-| Altcoin | Purple | Alternative cryptocurrencies (ETH, SOL, etc.) |
-| Cash | Green | Cash and equivalents |
-| Fixed Income | Pink | Bonds and fixed income |
-| Real Estate | Brown | Property investments |
-| Unit Trust | Pink | Unit trust and mutual funds |
-| Others | Grey | Uncategorized assets |
+| MY Equities | Blue | Yahoo Finance (`.KL` suffix) |
+| US Equities | Orange | Yahoo Finance |
+| Gold | Yellow | Yahoo Finance (`GC=F` → MYR/gram) |
+| Bitcoin | Orange | LUNO API |
+| Altcoin | Purple | LUNO API |
+| Cash | Green | Manual |
+| Fixed Income | Pink | Manual |
+| Real Estate | Brown | Manual |
+| Unit Trust | Pink | Manual |
+| Others | Grey | Manual |
 
 ## Architecture
 
@@ -373,6 +415,17 @@ The application is a **single FastAPI service** that serves both the JSON API an
 - **`services/`** - Shared business logic used by both API and web routes
 
 This eliminates the need for a separate frontend service. All pages and API endpoints are served from a single process on port 8000.
+
+### Price Refresh Flow
+
+1. User clicks **"Refresh Prices"** (on Assets, Bulk Update, or Market page)
+2. `POST /api/v1/prices/refresh` is called
+3. Exchange rates are updated first (so currency conversions use fresh rates)
+4. `price_fetcher.py` queries `market_prices` table to know what symbols to fetch
+5. Prices are fetched from LUNO (crypto) and Yahoo Finance (stocks, gold) in parallel groups
+6. `market_prices` table is updated (current → previous, new → current, change % calculated)
+7. Matching portfolio `assets` are updated (price + value recalculated)
+8. UI reloads to show fresh data
 
 ### Charts
 
@@ -386,10 +439,10 @@ Built with ApexCharts via a shared `FinnCharts` module ([charts.js](backend/app/
 
 ## Roadmap
 
+- [ ] Scheduled automatic price updates (APScheduler)
+- [ ] Automated monthly snapshots
 - [ ] CSV/Excel file upload and statement parsing
 - [ ] User authentication & multi-user support
-- [ ] Real-time market data API integration
-- [ ] Automatic currency conversion
 - [ ] Performance attribution analysis
 
 ## Contributing
@@ -414,3 +467,5 @@ For support, please open an issue on GitHub.
 - [Bootstrap 5](https://getbootstrap.com/) for responsive UI components
 - [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
 - [Alpine.js](https://alpinejs.dev/) for lightweight interactivity
+- [LUNO API](https://www.luno.com/en/developers/api) for Malaysian crypto prices
+- [yfinance](https://github.com/ranaroussi/yfinance) for stock and gold price data

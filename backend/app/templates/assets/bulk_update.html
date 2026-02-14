@@ -60,6 +60,9 @@
         <hr class="my-3">
 
         <div class="d-flex gap-2 align-items-center">
+            <button type="button" class="btn btn-outline-success" @click="fetchPrices()" :disabled="saving">
+                <i class="bi bi-arrow-clockwise"></i> Fetch Latest Prices
+            </button>
             <button type="button" class="btn btn-primary" @click="save()" :disabled="saving">
                 <span x-show="!saving"><i class="bi bi-check-lg"></i> Save All Changes</span>
                 <span x-show="saving"><span class="spinner-border spinner-border-sm"></span> Saving...</span>
@@ -100,6 +103,27 @@ function bulkUpdate() {
             if (a.quantity > 0 && a.current_price > 0) {
                 a.current_value = Math.round(a.quantity * a.current_price * 100) / 100;
             }
+        },
+
+        async fetchPrices() {
+            this.saving = true;
+            this.message = '';
+            try {
+                var resp = await fetch('/api/v1/prices/refresh', { method: 'POST' });
+                if (resp.ok) {
+                    var d = await resp.json();
+                    this.success = true;
+                    this.message = 'Fetched ' + d.prices.updated + ' prices. Reloading...';
+                    setTimeout(function() { location.reload(); }, 1000);
+                } else {
+                    this.success = false;
+                    this.message = 'Fetch failed: ' + resp.statusText;
+                }
+            } catch (e) {
+                this.success = false;
+                this.message = 'Network error: ' + e.message;
+            }
+            this.saving = false;
         },
 
         async save() {

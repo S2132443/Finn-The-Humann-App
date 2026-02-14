@@ -13,7 +13,10 @@
       "Bash(for path in / /accounts /assets /transactions /income /settings /assets/bulk-update)",
       "Bash(docker compose exec:*)",
       "Bash(for path in /api/v1/accounts /api/v1/assets /api/v1/transactions /api/v1/income /api/v1/networth /api/v1/assets/classes /health)",
-      "WebFetch(domain:api.luno.com)"
+      "WebFetch(domain:api.luno.com)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(python3:*)"
     ]
   }
 }
