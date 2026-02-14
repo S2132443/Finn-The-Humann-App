@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Dashboard</h1>
+    <span class="text-muted">{{ networth.as_of_date if networth else 'N/A' }}</span>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card card-stat success">
+            <div class="card-body">
+                <div class="stat-label">Total Assets</div>
+                <div class="stat-value text-success">
+                    RM {{ '{:,.2f}'.format(networth.total_assets) if networth else '0.00' }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat danger">
+            <div class="card-body">
+                <div class="stat-label">Total Liabilities</div>
+                <div class="stat-value text-danger">
+                    RM {{ '{:,.2f}'.format(networth.total_liabilities) if networth else '0.00' }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat">
+            <div class="card-body">
+                <div class="stat-label">Net Worth</div>
+                <div class="stat-value text-primary">
+                    RM {{ '{:,.2f}'.format(networth.net_worth) if networth else '0.00' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-3 mb-4">
+    <!-- Net Worth History Chart -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Net Worth History</h5>
+            </div>
+            <div class="card-body">
+                <div id="networthChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Asset Allocation Pie -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Asset Allocation</h5>
+            </div>
+            <div class="card-body">
+                <div id="allocationPieChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-3 mb-4">
+    <!-- Actual vs SAA Chart -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Actual vs Strategic Allocation</h5>
+            </div>
+            <div class="card-body">
+                <div id="allocationComparisonChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Income Summary -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Income Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="incomeChart" class="chart-container"></div>
+                {% if income_summary and income_summary.by_asset_class %}
+                <hr class="my-3">
+                <h6 class="text-muted small mb-2">Income by Asset Class</h6>
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        {% for class_name, amount in income_summary.by_asset_class.items() %}
+                        <tr>
+                            <td>{{ class_name }}</td>
+                            <td class="text-end">RM {{ '{:,.2f}'.format(amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3: YTD Performance -->
+<div class="row g-3 mb-4">
+    <!-- YTD Performance Summary -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">YTD Performance (Modified Dietz)</h5>
+            </div>
+            <div class="card-body">
+                {% if modified_dietz and modified_dietz.total_days > 0 %}
+                <div class="text-center mb-3">
+                    <span class="display-5 fw-bold {% if modified_dietz.return_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ '{:+.2f}'.format(modified_dietz.return_percentage) }}%
+                    </span>
+                    <div class="text-muted small mt-1">
+                        {{ modified_dietz.period_start }} to {{ modified_dietz.period_end }}
+                    </div>
+                </div>
+                {% if modified_dietz.per_class_returns %}
+                <table class="table table-sm table-borderless mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-muted small">Asset Class</th>
+                            <th class="text-muted small text-end">Return</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cr in modified_dietz.per_class_returns %}
+                        {% if cr.beginning_market_value > 0 or cr.ending_market_value > 0 %}
+                        <tr>
+                            <td>{{ cr.asset_class_name }}</td>
+                            <td class="text-end {% if cr.return_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ '{:+.2f}'.format(cr.return_percentage) }}%
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    No snapshot data available. Create at least 2 monthly snapshots to calculate returns.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- YTD Cumulative Return Line Chart -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">YTD Cumulative Return</h5>
+            </div>
+            <div class="card-body">
+                <div id="dailyReturnChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/accounts/add" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Add Account
+                    </a>
+                    <a href="/assets/add" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Add Asset
+                    </a>
+                    <a href="/transactions/add" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Record Transaction
+                    </a>
+                    <a href="/income/add" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Record Income
+                    </a>
+                    <a href="/settings/snapshots" class="btn btn-outline-secondary">
+                        <i class="bi bi-camera"></i> Create Snapshot
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/charts.js"></script>
+<script>
+    var chartData = {{ chart_data_json | safe }};
+    FinnCharts.renderNetWorthHistory('#networthChart', chartData.history);
+    FinnCharts.renderAllocationPie('#allocationPieChart', chartData.allocation);
+    FinnCharts.renderAllocationComparison('#allocationComparisonChart', chartData.allocation);
+    FinnCharts.renderIncomeSummary('#incomeChart', chartData.income);
+    FinnCharts.renderDailyReturn('#dailyReturnChart', chartData.daily_series);
+</script>
+{% endblock %}

@@ -1,12 +1,12 @@
 # Finn-The-Humann
 
-A comprehensive investment tracking platform for individuals to monitor portfolio performance and combined net worth. Track true investment returns using TWRR (Time-Weighted Rate of Return) and IRR calculations.
+A comprehensive investment tracking platform for individuals to monitor portfolio performance and combined net worth. Track true investment returns using TWRR (Time-Weighted Rate of Return) and Modified Dietz calculations.
 
 ![Platform Overview](docs/images/dashboard-preview.png)
 
 ## Features
 
-### Core Features (by Priority)
+### Core Features
 1. **Asset, Liability & Net Worth Tracker** - Track overall financial position over time
 2. **Asset Allocation** - View actual vs Strategic Asset Allocation (SAA) with variance analysis
 3. **TWRR Calculator** - True investment performance measurement
@@ -16,11 +16,10 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 7. **Daily Performance Series** - Step-function cumulative return chart for visual tracking
 
 ### Additional Features
+- **Bulk Price Update** - Update all asset prices/values from a single page
+- **P&L Tracking** - Profit & loss with percentage shown on the assets table
 - **Per-Asset-Class Returns** - See which asset classes are driving performance
 - **Transaction Asset Class Tagging** - Optionally assign cashflows to asset classes for accurate Modified Dietz
-- **Performance Attribution** - Understand what's driving returns
-- **SAA Optimization** - Strategic asset allocation suggestions
-- **Market Performances** - Benchmark comparisons
 - **Multi-Currency Support** - Track assets in any currency, convert to MYR base
 - **Monthly Snapshots** - Historical performance tracking
 - **PWA Support** - Install as mobile app
@@ -28,9 +27,10 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 ## Technology Stack
 
 - **Backend**: FastAPI + SQLAlchemy
-- **Frontend**: Flask + Jinja2 + Bootstrap 5
+- **Templating**: Jinja2 + Bootstrap 5
+- **Interactivity**: Alpine.js
 - **Database**: PostgreSQL
-- **Charts**: ApexCharts
+- **Charts**: ApexCharts (shared JS module)
 - **Containerization**: Docker Compose
 
 ## Quick Start (Docker)
@@ -58,8 +58,7 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
    ```
 
 4. **Access the application**
-   - Frontend: http://localhost:5000
-   - Backend API: http://localhost:8000
+   - Web UI: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
 
 ### Stopping the Application
@@ -77,7 +76,24 @@ docker-compose down -v
 ### Prerequisites
 - Python 3.11+
 - PostgreSQL 15+
-- Node.js (optional, for frontend tooling)
+
+### Database Setup
+
+1. **Create database**
+   ```sql
+   CREATE DATABASE finn_db;
+   ```
+
+2. **Initialize schema**
+   ```bash
+   psql -U postgres -d finn_db -f database/init.sql
+   ```
+
+3. **Run migrations** (for existing databases)
+   ```bash
+   psql -U postgres -d finn_db -f database/migrations/001_add_altcoin_unit_trust.sql
+   psql -U postgres -d finn_db -f database/migrations/002_add_asset_class_id_to_transactions.sql
+   ```
 
 ### Backend Setup
 
@@ -100,61 +116,19 @@ docker-compose down -v
    export SECRET_KEY=your-secret-key
    ```
 
-4. **Run migrations**
-   ```bash
-   alembic upgrade head
-   ```
-
-5. **Start backend server**
+4. **Start the server**
    ```bash
    uvicorn app.main:app --reload --port 8000
    ```
 
-### Frontend Setup
-
-1. **Create virtual environment**
-   ```bash
-   cd frontend
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   venv\Scripts\activate     # Windows
+5. **Open in browser**
+   ```
+   http://localhost:8000
    ```
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set environment variables**
-   ```bash
-   export API_BASE_URL=http://localhost:8000
-   export SECRET_KEY=your-secret-key
-   ```
-
-4. **Start frontend server**
-   ```bash
-   flask run --port 5000
-   ```
-
-### Database Setup
-
-1. **Create database**
-   ```sql
-   CREATE DATABASE finn_db;
-   ```
-
-2. **Initialize schema**
-   ```bash
-   psql -U postgres -d finn_db -f database/init.sql
-   ```
-
-## How to Use - Complete Tutorial
-
-This section provides a step-by-step guide to set up your portfolio and generate all dashboard charts.
+## How to Use
 
 ### Quick Start (5 minutes)
-
-Follow these steps to populate your dashboard with sample data:
 
 #### Step 1: Create Your First Account
 
@@ -169,7 +143,7 @@ Follow these steps to populate your dashboard with sample data:
 
 #### Step 2: Add Your Assets
 
-Go to **Assets → Add Asset** and create these entries:
+Go to **Assets > Add Asset** and create entries:
 
 | Asset Name | Symbol | Account | Asset Class | Quantity | Value (RM) |
 |------------|--------|---------|-------------|----------|------------|
@@ -179,60 +153,27 @@ Go to **Assets → Add Asset** and create these entries:
 | Bitcoin | BTC | My Investment Portfolio | Bitcoin | 0.5 | 20,000 |
 | Maybank | MAYBANK | My Investment Portfolio | MY Equities | 1000 | 40,000 |
 
-**Total Portfolio: RM 95,000**
+Use **Bulk Update** to quickly update all prices from one page.
 
 #### Step 3: Set Strategic Asset Allocation (SAA)
 
 1. Go to **Settings** in the top navbar
 2. Click **"Edit SAA"**
-3. Enter these target percentages:
-
-| Asset Class | Target % |
-|-------------|----------|
-| Gold | 10.0 |
-| US Equities | 15.0 |
-| Cash | 5.0 |
-| Bitcoin | 25.0 |
-| MY Equities | 45.0 |
-
+3. Enter target percentages for each asset class
 4. Set effective date to today
 5. Click **Save Allocation**
 
 #### Step 4: Create Historical Snapshots
 
-To see the Net Worth History chart, create snapshots:
+To see the Net Worth History chart:
 
-1. Go to **Settings → Monthly Snapshots**
-2. Create snapshots for these dates:
-
-| Date | (System calculates from your assets) |
-|------|-------------------------------------|
-| 2025-01-30 | Assets: 90,000, Liabilities: 25,000 |
-| 2025-05-03 | Assets: 100,000, Liabilities: 20,000 |
-
-**Note:** For testing, you can temporarily modify asset values before creating each snapshot.
+1. Go to **Settings > Monthly Snapshots**
+2. Click **"Generate Snapshot"**
+3. Create snapshots for past months to build history
 
 #### Step 5: Record Income (Optional)
 
-Go to **Income → Record Income**:
-
-| Date | Type | Asset | Amount |
-|------|------|-------|--------|
-| 2025-01-15 | Dividend | Maybank | 500 |
-| 2025-02-15 | Dividend | Apple Inc | 200 |
-| 2025-03-01 | Interest | Cash Reserve | 50 |
-
-### View Your Dashboard
-
-Return to the **Dashboard** (click Finn logo) to see:
-
-1. **Summary Cards** - Total Assets, Liabilities, Net Worth
-2. **Net Worth History** - Area chart showing trends over time
-3. **Asset Allocation Pie** - Current portfolio breakdown
-4. **Actual vs SAA** - Bar chart comparing your allocation to targets
-5. **Income Summary** - Pie chart of income by type
-
----
+Go to **Income > Record Income** to log dividends, interest, and rental income.
 
 ### Accessing from Mobile
 
@@ -246,119 +187,34 @@ Return to the **Dashboard** (click Finn logo) to see:
 
 2. On your phone, open browser and go to:
    ```
-   http://192.168.1.105:5000
+   http://192.168.1.105:8000
    ```
 
-3. Make sure Windows Firewall allows port 5000
+3. Make sure Windows Firewall allows port 8000
 
 #### Using ngrok (Internet Access)
 
 1. Install ngrok from https://ngrok.com
 2. Run:
    ```bash
-   ngrok http 5000
+   ngrok http 8000
    ```
 3. Use the provided URL (e.g., `https://abc123.ngrok.io`)
 
 ### Installing as PWA
 
 #### Desktop (Chrome/Edge)
-1. Open http://localhost:5000
-2. Click the install icon (⊕) in address bar
+1. Open http://localhost:8000
+2. Click the install icon in address bar
 3. Click "Install"
 
 #### Android
 1. Open site in Chrome
-2. Tap menu (⋮) → "Add to Home Screen"
-3. Tap "Add"
+2. Tap menu > "Add to Home Screen"
 
 #### iOS
 1. Open site in Safari
-2. Tap Share (□↑)
-3. Tap "Add to Home Screen"
-
-**Note:** PWA installation requires icons in `/static/icons/`. For full functionality, deploy to HTTPS.
-
----
-
-## Detailed Usage Guide
-
-### Getting Started
-
-1. **Add Accounts**
-   - Navigate to "Accounts" → "Add New Account"
-   - Enter account name, type (Trading, Savings, Crypto Wallet), and currency
-   - Example: "Maybank Trading Account", Type: Trading, Currency: MYR
-
-2. **Add Assets**
-   - Navigate to "Assets" → "Add New Asset"
-   - Select account, asset class, enter quantity and current value
-   - Example: "Apple Stock", Class: US Equities, Value: $5,000
-
-3. **Record Transactions**
-   - Navigate to "Transactions" → "Add Transaction"
-   - Select account, type (Deposit/Withdrawal), amount, date
-   - This is essential for TWRR calculation
-
-4. **Record Income**
-   - Navigate to "Income" → "Add Income"
-   - Select asset, income type (Dividend/Rental/Interest), amount, date
-   - Example: Dividend from Apple, RM 150, Date: 2025-01-15
-
-5. **Set Strategic Allocation**
-   - Navigate to "Settings" → "Strategic Asset Allocation"
-   - Set target percentages for each asset class
-   - Example: MY Equities: 45%, US Equities: 15%, Gold: 10%, Bitcoin: 25%, Cash: 5%
-
-### Dashboard Overview
-
-The main dashboard displays:
-
-- **Net Worth Card** - Current total with trend indicator
-- **Net Worth Chart** - Assets, Liabilities, and Net Worth over time
-- **Asset Allocation Pie** - Current portfolio breakdown
-- **Actual vs SAA Chart** - Comparison with strategic targets
-- **TWRR Performance** - Time-weighted returns
-- **Income Summary** - Total investment income by type
-
-### Monthly Snapshots
-
-The system automatically captures monthly snapshots of your portfolio for historical tracking. You can also manually trigger a snapshot:
-
-1. Navigate to "Settings" → "Snapshots"
-2. Click "Generate Snapshot"
-3. Select the period end date
-
-### Understanding TWRR
-
-Time-Weighted Rate of Return (TWRR) measures the compound rate of growth in a portfolio, eliminating the distorting effects of cash flows. This gives you the true performance of your investments.
-
-**Formula:**
-```
-TWRR = [(1 + R1) × (1 + R2) × ... × (1 + Rn)] - 1
-```
-
-Where R1, R2, etc. are the returns for each sub-period between cash flows.
-
-### Understanding Modified Dietz
-
-Modified Dietz is a money-weighted return method that adjusts for the timing of cash flows within a period. It is the primary return method used in the Excel specification.
-
-**Formula:**
-```
-Return = (End MV - Beg MV - Net CF - Income) / (Beg MV + Weighted CF)
-Weighted CF = CF × (Total Days - Day of CF) / Total Days
-```
-
-- Transactions can optionally be tagged with an `asset_class_id` for per-class return attribution
-- The daily performance series uses step-function interpolation between snapshots
-- Both portfolio-level and per-asset-class returns are computed in a single API call
-
-### Multi-Currency Handling
-
-- Assets can be tracked in any currency (USD, SGD, etc.)
-- All values are converted to MYR (base currency) for aggregation
-- Exchange rates are updated from configuration (future: API integration)
+2. Tap Share > "Add to Home Screen"
 
 ## API Reference
 
@@ -381,6 +237,7 @@ http://localhost:8000/api/v1
 - `POST /assets` - Create new asset
 - `GET /assets/{id}` - Get asset details
 - `PUT /assets/{id}` - Update asset
+- `PUT /assets/bulk-update` - Bulk update prices, quantities, and values
 - `DELETE /assets/{id}` - Delete asset
 
 #### Transactions
@@ -399,16 +256,20 @@ http://localhost:8000/api/v1
 - `GET /allocation/comparison` - Get actual vs SAA comparison
 - `GET /returns/twrr` - Calculate TWRR
 - `GET /returns/modified-dietz` - Calculate Modified Dietz return (YTD default, optional `asset_class_id` filter)
-- `GET /returns/daily-series` - Daily cumulative return series for charting (step-function)
-- `GET /income/summary` - Get income summary (includes `by_asset_class` breakdown)
+- `GET /returns/daily-series` - Daily cumulative return series for charting
+- `GET /income/summary` - Get income summary with per-asset-class breakdown
 
 #### Snapshots
 - `GET /snapshots` - List all snapshots
 - `POST /snapshots` - Generate new snapshot
 
-### API Documentation
+#### Settings
+- `GET /settings/asset-classes` - List all asset classes
+- `GET /settings/currencies` - List exchange rates
+- `PUT /settings/currencies` - Update exchange rates
 
-Interactive API documentation available at:
+### Interactive Docs
+
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
@@ -416,62 +277,63 @@ Interactive API documentation available at:
 
 ```
 Finn-The-Humann-App/
-├── docker-compose.yml          # Container orchestration
-├── .env.example                 # Environment variables template
-├── README.md                    # This file
+├── docker-compose.yml          # Docker orchestration (db + backend)
+├── .env.example                # Environment variables template
+├── README.md
 │
-├── backend/                     # FastAPI Backend
+├── backend/                    # FastAPI application
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── alembic/                 # Database migrations
 │   └── app/
-│       ├── main.py              # Application entry point
-│       ├── config.py            # Configuration settings
-│       ├── models/              # SQLAlchemy models
+│       ├── main.py             # Application entry point
+│       ├── config.py           # Configuration settings
+│       ├── database.py         # Database connection
+│       ├── models/             # SQLAlchemy models
 │       │   ├── account.py
 │       │   ├── asset.py
 │       │   ├── transaction.py
 │       │   ├── income.py
-│       │   └── snapshot.py
-│       ├── schemas/             # Pydantic schemas
+│       │   ├── snapshot.py
+│       │   ├── allocation.py
+│       │   └── currency.py
+│       ├── schemas/            # Pydantic schemas
 │       ├── api/
-│       │   └── v1/              # Versioned API endpoints
+│       │   └── v1/             # JSON API endpoints
 │       │       ├── accounts.py
 │       │       ├── assets.py
 │       │       ├── transactions.py
 │       │       ├── income.py
-│       │       └── calculations.py
-│       ├── services/            # Business logic
-│       │   ├── networth.py
-│       │   ├── allocation.py
-│       │   ├── twrr.py
-│       │   └── income.py
-│       └── utils/               # Helpers
-│           ├── currency.py
-│           └── calculations.py
-│
-├── frontend/                    # Flask Frontend
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── app/
-│       ├── __init__.py          # Flask app factory
-│       ├── routes/              # Flask blueprints
+│       │       ├── calculations.py
+│       │       ├── snapshots.py
+│       │       └── settings.py
+│       ├── services/           # Business logic (shared)
+│       │   └── calculations.py # Net worth, returns, allocation
+│       ├── web/                # HTML page routes
+│       │   ├── dependencies.py # Templates, flash messages
 │       │   ├── dashboard.py
 │       │   ├── accounts.py
 │       │   ├── assets.py
+│       │   ├── transactions.py
+│       │   ├── income.py
 │       │   └── settings.py
-│       ├── templates/           # Jinja2 templates
+│       ├── templates/          # Jinja2 templates
 │       │   ├── base.html
 │       │   ├── dashboard.html
-│       │   └── components/
+│       │   ├── accounts/
+│       │   ├── assets/
+│       │   ├── transactions/
+│       │   ├── income/
+│       │   └── settings/
 │       └── static/
-│           ├── css/
-│           ├── js/
-│           ├── manifest.json    # PWA manifest
-│           └── sw.js            # Service worker
+│           ├── js/charts.js    # Shared chart components
+│           ├── manifest.json   # PWA manifest
+│           └── sw.js           # Service worker
 │
 └── database/
-    └── init.sql                 # Initial schema
+    ├── init.sql                # Initial schema + seed data
+    └── migrations/             # Incremental migrations
+        ├── 001_add_altcoin_unit_trust.sql
+        └── 002_add_asset_class_id_to_transactions.sql
 ```
 
 ## Configuration
@@ -482,67 +344,53 @@ Finn-The-Humann-App/
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:password@db:5432/finn_db` |
 | `SECRET_KEY` | Application secret key | (required) |
-| `API_BASE_URL` | Backend API URL | `http://backend:8000` |
 | `BASE_CURRENCY` | Default currency for aggregation | `MYR` |
 | `DEBUG` | Enable debug mode | `false` |
 
 ### Asset Classes
 
-Default asset classes (configurable via database):
-- MY Equities
-- US Equities
-- Gold
-- Bitcoin/Crypto
-- Cash
-- Fixed Income
-- Real Estate
+Default asset classes (configurable via Settings):
 
-## Charts & Visualizations
+| Asset Class | Color | Description |
+|-------------|-------|-------------|
+| MY Equities | Blue | Malaysian stocks |
+| US Equities | Orange | US stocks |
+| Gold | Yellow | Gold and precious metals |
+| Bitcoin | Orange | Bitcoin |
+| Altcoin | Purple | Alternative cryptocurrencies (ETH, SOL, etc.) |
+| Cash | Green | Cash and equivalents |
+| Fixed Income | Pink | Bonds and fixed income |
+| Real Estate | Brown | Property investments |
+| Unit Trust | Pink | Unit trust and mutual funds |
+| Others | Grey | Uncategorized assets |
 
-Built with ApexCharts:
+## Architecture
+
+The application is a **single FastAPI service** that serves both the JSON API and the web UI:
+
+- **`api/v1/`** - RESTful JSON endpoints for programmatic access
+- **`web/`** - HTML page routes using Jinja2 templates
+- **`services/`** - Shared business logic used by both API and web routes
+
+This eliminates the need for a separate frontend service. All pages and API endpoints are served from a single process on port 8000.
+
+### Charts
+
+Built with ApexCharts via a shared `FinnCharts` module ([charts.js](backend/app/static/js/charts.js)):
 
 1. **Net Worth Area Chart** - Assets, Liabilities, Net Worth over time
-2. **Asset Allocation Pie/Donut** - Current portfolio breakdown
-3. **Actual vs SAA Grouped Bar** - Target vs actual allocation
-4. **YTD Cumulative Return Stepline** - Daily Modified Dietz return series
-5. **YTD Performance Card** - Portfolio and per-class return percentages
-6. **Income Pie Chart** - Income by type with per-asset-class table
-7. **TWRR Line Chart** - Performance over time
-
-All charts are:
-- Interactive with tooltips
-- Responsive for mobile
-- Exportable as PNG/SVG
-- Consistently color-coded
-
-## PWA (Progressive Web App)
-
-The application can be installed as a mobile app:
-
-1. Open the application in mobile browser
-2. Tap "Add to Home Screen" (iOS) or install prompt (Android)
-3. The app will work offline with cached data
+2. **Asset Allocation Donut** - Current portfolio breakdown
+3. **Actual vs SAA Bar Chart** - Target vs actual allocation
+4. **Income Pie Chart** - Income by type
+5. **Daily Return Stepline** - YTD cumulative Modified Dietz return
 
 ## Roadmap
 
-### Phase 2 - Data Import
-- [ ] CSV/Excel file upload
-- [ ] Statement parsing (PDF)
-- [ ] Automatic data extraction
-
-### Phase 3 - Advanced Features
+- [ ] CSV/Excel file upload and statement parsing
 - [ ] User authentication & multi-user support
 - [ ] Real-time market data API integration
 - [ ] Automatic currency conversion
 - [ ] Performance attribution analysis
-- [ ] Monte Carlo retirement projections
-
-### Phase 4 - B2B Features
-- [ ] Multi-tenant architecture
-- [ ] Admin dashboard
-- [ ] Client management
-- [ ] White-labeling support
-- [ ] Billing integration
 
 ## Contributing
 
@@ -558,11 +406,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For support, please open an issue on GitHub or contact the development team.
+For support, please open an issue on GitHub.
 
 ## Acknowledgments
 
-- ApexCharts for beautiful visualizations
-- Bootstrap 5 for responsive UI components
-- FastAPI for high-performance backend
-- Flask for flexible frontend templating
+- [ApexCharts](https://apexcharts.com/) for interactive visualizations
+- [Bootstrap 5](https://getbootstrap.com/) for responsive UI components
+- [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
+- [Alpine.js](https://alpinejs.dev/) for lightweight interactivity

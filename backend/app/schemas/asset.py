@@ -1,7 +1,7 @@
 """Asset schemas for API validation."""
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime, date
 
@@ -65,6 +65,19 @@ class AssetUpdate(BaseModel):
     purchase_date: Optional[date] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
+
+
+class AssetBulkPriceUpdate(BaseModel):
+    """Schema for a single asset in a bulk price update."""
+    asset_id: UUID
+    current_price: Optional[float] = None
+    current_value: Optional[float] = None
+    quantity: Optional[float] = None
+
+
+class AssetBulkPriceUpdateRequest(BaseModel):
+    """Schema for bulk price update request."""
+    updates: List[AssetBulkPriceUpdate]
 
 
 class AssetResponse(AssetBase):

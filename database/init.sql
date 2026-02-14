@@ -173,11 +173,13 @@ INSERT INTO asset_classes (name, description, color, display_order) VALUES
 ('MY Equities', 'Malaysian stocks and ETFs', '#1f77b4', 1),
 ('US Equities', 'US stocks and ETFs', '#ff7f0e', 2),
 ('Gold', 'Physical gold and gold ETFs', '#ffd700', 3),
-('Bitcoin', 'Bitcoin and cryptocurrencies', '#f7931a', 4),
-('Cash', 'Cash and money market funds', '#2ca02c', 5),
-('Fixed Income', 'Bonds and sukuk', '#9467bd', 6),
-('Real Estate', 'REITs and property', '#8c564b', 7),
-('Others', 'Other asset classes', '#7f7f7f', 8);
+('Bitcoin', 'Bitcoin', '#f7931a', 4),
+('Altcoin', 'Alternative cryptocurrencies (ETH, SOL, etc.)', '#8b5cf6', 5),
+('Cash', 'Cash and money market funds', '#2ca02c', 6),
+('Fixed Income', 'Bonds and sukuk', '#9467bd', 7),
+('Real Estate', 'REITs and property', '#8c564b', 8),
+('Unit Trust', 'Unit trust and mutual funds', '#e377c2', 9),
+('Others', 'Other asset classes', '#7f7f7f', 10);
 
 -- Default Currencies
 INSERT INTO currencies (code, name, symbol, exchange_rate_to_myr) VALUES

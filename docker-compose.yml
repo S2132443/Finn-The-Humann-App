@@ -42,25 +42,6 @@ services:
       - ./backend/app:/app/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Flask Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: finn_frontend
-    restart: unless-stopped
-    environment:
-      API_BASE_URL: ${API_BASE_URL:-http://backend:8000}
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
-      FLASK_ENV: ${FLASK_ENV:-development}
-      DEBUG: ${DEBUG:-false}
-    ports:
-      - "5000:5000"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend/app:/app/app
-    command: flask run --host 0.0.0.0 --port 5000 --reload
 
 volumes:
   postgres_data:

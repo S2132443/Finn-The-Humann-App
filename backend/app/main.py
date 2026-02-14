@@ -1,9 +1,19 @@
 """Main FastAPI application entry point."""
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
+
 from app.api.v1 import accounts, assets, transactions, income, calculations, snapshots, settings as settings_router
+from app.web import dashboard as web_dashboard
+from app.web import accounts as web_accounts
+from app.web import assets as web_assets
+from app.web import transactions as web_transactions
+from app.web import income as web_income
+from app.web import settings as web_settings
 
 # Create FastAPI application
 app = FastAPI(
@@ -11,8 +21,11 @@ app = FastAPI(
     version=settings.APP_VERSION,
     description="Investment Portfolio Tracking Platform API",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
+
+# Session middleware (for flash messages and future auth)
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Configure CORS
 app.add_middleware(
@@ -22,6 +35,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Static files
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Include API routers
 app.include_router(
@@ -66,15 +84,13 @@ app.include_router(
     tags=["Settings"]
 )
 
-
-@app.get("/", tags=["Health"])
-async def root():
-    """Root endpoint - health check."""
-    return {
-        "status": "healthy",
-        "app": settings.APP_NAME,
-        "version": settings.APP_VERSION
-    }
+# Web routes (HTML pages - served by FastAPI directly)
+app.include_router(web_dashboard.router, tags=["Web"])
+app.include_router(web_accounts.router, prefix="/accounts", tags=["Web"])
+app.include_router(web_assets.router, prefix="/assets", tags=["Web"])
+app.include_router(web_transactions.router, prefix="/transactions", tags=["Web"])
+app.include_router(web_income.router, prefix="/income", tags=["Web"])
+app.include_router(web_settings.router, prefix="/settings", tags=["Web"])
 
 
 @app.get("/health", tags=["Health"])

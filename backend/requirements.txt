@@ -12,6 +12,10 @@ alembic==1.12.1
 pydantic==2.5.2
 pydantic-settings==2.1.0
 
+# Template rendering and sessions
+jinja2>=3.1.2
+itsdangerous>=2.1.2
+
 # Date/time handling
 python-dateutil==2.8.2
 

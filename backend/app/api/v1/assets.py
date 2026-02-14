@@ -10,7 +10,8 @@ from app.models.asset import Asset, AssetClass
 from app.models.currency import Currency
 from app.schemas.asset import (
     AssetCreate, AssetUpdate, AssetResponse,
-    AssetClassResponse, AssetClassCreate
+    AssetClassResponse, AssetClassCreate,
+    AssetBulkPriceUpdateRequest
 )
 
 router = APIRouter()
@@ -104,6 +105,45 @@ def get_asset(asset_id: UUID, db: Session = Depends(get_db)):
         response.value_in_myr = float(asset.current_value) if asset.current_value else 0
     
     return response
+
+
+@router.put("/bulk-update", response_model=List[AssetResponse])
+def bulk_update_asset_prices(
+    request: AssetBulkPriceUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Bulk update asset prices/values in a single transaction."""
+    updated_assets = []
+    for update in request.updates:
+        asset = db.query(Asset).filter(Asset.id == update.asset_id).first()
+        if not asset:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Asset {update.asset_id} not found"
+            )
+        if update.current_price is not None:
+            asset.current_price = update.current_price
+        if update.current_value is not None:
+            asset.current_value = update.current_value
+        if update.quantity is not None:
+            asset.quantity = update.quantity
+        updated_assets.append(asset)
+
+    db.commit()
+
+    result = []
+    for asset in updated_assets:
+        db.refresh(asset)
+        asset_resp = AssetResponse.model_validate(asset)
+        if asset.currency != 'MYR' and asset.current_value:
+            currency = db.query(Currency).filter(Currency.code == asset.currency).first()
+            if currency:
+                asset_resp.value_in_myr = float(asset.current_value) * float(currency.exchange_rate_to_myr)
+        else:
+            asset_resp.value_in_myr = float(asset.current_value) if asset.current_value else 0
+        result.append(asset_resp)
+
+    return result
 
 
 @router.put("/{asset_id}", response_model=AssetResponse)

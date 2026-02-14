@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(wc:*)",
+      "Bash(git mv:*)",
+      "Bash(git rm:*)",
+      "Bash(git clean:*)",
+      "Bash(curl:*)",
+      "Bash(for path in / /accounts /assets /transactions /income /settings /settings/snapshots /settings/allocation /assets/add /accounts/add /transactions/add /income/add /assets/bulk-update)",
+      "Bash(do echo -n \"$path -> \")",
+      "Bash(done)",
+      "Bash(for path in / /accounts /assets /transactions /income /settings /assets/bulk-update)",
+      "Bash(docker compose exec:*)",
+      "Bash(for path in /api/v1/accounts /api/v1/assets /api/v1/transactions /api/v1/income /api/v1/networth /api/v1/assets/classes /health)",
+      "WebFetch(domain:api.luno.com)"
     ]
   }
 }
