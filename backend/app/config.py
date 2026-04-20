@@ -21,8 +21,12 @@ class Settings(BaseSettings):
     # Currency
     BASE_CURRENCY: str = "MYR"
     
-    # CORS
-    CORS_ORIGINS: list = ["http://localhost:5000", "http://127.0.0.1:5000"]
+    # CORS (comma-separated). Production is same-origin, so this matters only in dev.
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     # Broker API keys (all optional — app works without them)
     LUNO_API_KEY_ID: str = ""

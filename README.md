@@ -40,108 +40,85 @@ A comprehensive investment tracking platform for individuals to monitor portfoli
 
 ## Technology Stack
 
-- **Backend**: FastAPI + SQLAlchemy
-- **Templating**: Jinja2 + Bootstrap 5
-- **Interactivity**: Alpine.js
+- **Backend**: FastAPI + SQLAlchemy, serving both `/api/v1/*` and the built SPA from one process
+- **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + TanStack Query + Recharts
+- **PWA**: `vite-plugin-pwa` (Workbox) — installable on desktop and mobile, offline shell
 - **Database**: PostgreSQL
-- **Charts**: ApexCharts (shared JS module)
 - **Price Data**: LUNO API + yfinance
 - **Broker Sync**: luno-python SDK (extensible provider pattern)
-- **Containerization**: Docker Compose
+- **Containerization**: Docker Compose (multi-stage build: Node → Python)
 
-## Quick Start (Docker)
+## Quick Start (one-time local install)
 
 ### Prerequisites
-- Docker Desktop installed
+- Docker Desktop
 - Git
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/Finn-The-Humann-App.git
-   cd Finn-The-Humann-App
-   ```
-
-2. **Create environment file**
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Start the application**
-   ```bash
-   docker-compose up --build
-   ```
-
-4. **Access the application**
-   - Web UI: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
-
-### Stopping the Application
 ```bash
-docker-compose down
+git clone https://github.com/yourusername/Finn-The-Humann-App.git
+cd Finn-The-Humann-App
+cp .env.example .env
+docker-compose up --build
 ```
 
-To remove all data (including database):
+Then:
+
+- **On your PC**: open http://localhost:8000
+- **On your phone** (same Wi-Fi): find your PC's IPv4 with `ipconfig` (e.g. `192.168.1.105`), open `http://192.168.1.105:8000` in Chrome/Safari, then **Add to Home Screen** — installs as a PWA with offline shell.
+- **API docs**: http://localhost:8000/docs
+
+### Stopping
+
 ```bash
-docker-compose down -v
+docker-compose down          # stop
+docker-compose down -v       # stop + wipe database
 ```
 
-## Manual Setup (Development)
+## Development
+
+Two-process dev loop with hot-reload on both sides:
+
+```bash
+# Terminal 1 — backend + db
+docker-compose up db
+uvicorn app.main:app --reload --port 8000   # from backend/
+
+# Terminal 2 — frontend
+cd frontend
+npm install
+npm run dev                                  # http://localhost:3000, proxies /api to :8000
+```
+
+Vite's dev server listens on `0.0.0.0` so you can also hit `http://<pc-ip>:3000` from your phone during development.
+
+## Manual Setup (without Docker)
 
 ### Prerequisites
-- Python 3.11+
-- PostgreSQL 15+
+- Python 3.11+, PostgreSQL 15+, Node 20+
 
-### Database Setup
+```bash
+# Database
+createdb finn_db
+psql -U postgres -d finn_db -f database/init.sql
+for f in database/migrations/*.sql; do psql -U postgres -d finn_db -f "$f"; done
 
-1. **Create database**
-   ```sql
-   CREATE DATABASE finn_db;
-   ```
+# Backend
+cd backend
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+export DATABASE_URL=postgresql://postgres:password@localhost:5432/finn_db
+export SECRET_KEY=change-me
+uvicorn app.main:app --reload --port 8000
 
-2. **Initialize schema**
-   ```bash
-   psql -U postgres -d finn_db -f database/init.sql
-   ```
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run build    # produces frontend/dist/ which FastAPI will serve
+```
 
-3. **Run migrations** (for existing databases)
-   ```bash
-   psql -U postgres -d finn_db -f database/migrations/001_add_altcoin_unit_trust.sql
-   psql -U postgres -d finn_db -f database/migrations/002_add_asset_class_id_to_transactions.sql
-   psql -U postgres -d finn_db -f database/migrations/003_add_market_prices.sql
-   ```
-
-### Backend Setup
-
-1. **Create virtual environment**
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   venv\Scripts\activate     # Windows
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set environment variables**
-   ```bash
-   export DATABASE_URL=postgresql://postgres:password@localhost:5432/finn_db
-   export SECRET_KEY=your-secret-key
-   ```
-
-4. **Start the server**
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
-
-5. **Open in browser**
-   ```
-   http://localhost:8000
-   ```
+Open http://localhost:8000. For hot-reload frontend dev, run `npm run dev` on :3000 instead of building.
 
 ## How to Use
 
@@ -354,62 +331,37 @@ Finn-The-Humann-App/
 ├── README.md
 ├── LEGAL.md                    # Licensing & distribution compliance
 │
-├── backend/                    # FastAPI application
-│   ├── Dockerfile
+├── backend/                    # FastAPI — API + serves the built SPA
+│   ├── Dockerfile              # Multi-stage: Node build → Python runtime
 │   ├── requirements.txt
 │   └── app/
-│       ├── main.py             # Application entry point
-│       ├── config.py           # Configuration settings
-│       ├── database.py         # Database connection
-│       ├── models/             # SQLAlchemy models
-│       │   ├── account.py
-│       │   ├── asset.py
-│       │   ├── transaction.py
-│       │   ├── income.py
-│       │   ├── snapshot.py
-│       │   ├── allocation.py
-│       │   ├── currency.py
-│       │   └── market_price.py # Price tracking & watchlist
-│       ├── schemas/            # Pydantic schemas
-│       ├── api/
-│       │   └── v1/             # JSON API endpoints
-│       │       ├── accounts.py
-│       │       ├── assets.py
-│       │       ├── transactions.py
-│       │       ├── income.py
-│       │       ├── calculations.py
-│       │       ├── snapshots.py
-│       │       ├── settings.py
-│       │       ├── prices.py   # Price refresh endpoint
-│       │       └── brokers.py  # Broker sync endpoints
-│       ├── services/           # Business logic (shared)
-│       │   ├── calculations.py # Net worth, returns, allocation
-│       │   ├── price_fetcher.py # LUNO, Yahoo Finance, exchange rates
-│       │   └── brokers/        # Broker integration providers
-│       │       ├── __init__.py  # Provider base class & registry
-│       │       └── luno.py      # LUNO balance sync
-│       ├── web/                # HTML page routes
-│       │   ├── dependencies.py # Templates, flash messages
-│       │   ├── dashboard.py
-│       │   ├── accounts.py
-│       │   ├── assets.py
-│       │   ├── transactions.py
-│       │   ├── income.py
-│       │   ├── settings.py
-│       │   └── market.py       # Market/watchlist page
-│       ├── templates/          # Jinja2 templates
-│       │   ├── base.html
-│       │   ├── dashboard.html
-│       │   ├── accounts/
-│       │   ├── assets/
-│       │   ├── transactions/
-│       │   ├── income/
-│       │   ├── settings/
-│       │   └── market/         # Market page template
-│       └── static/
-│           ├── js/charts.js    # Shared chart components
-│           ├── manifest.json   # PWA manifest
-│           └── sw.js           # Service worker
+│       ├── main.py             # Entry point + SPA catch-all
+│       ├── config.py
+│       ├── database.py
+│       ├── models/             # SQLAlchemy
+│       ├── schemas/            # Pydantic
+│       ├── api/v1/             # JSON endpoints (accounts, assets, transactions,
+│       │                       # income, calculations, snapshots, settings,
+│       │                       # prices, brokers)
+│       └── services/           # Shared business logic
+│           ├── calculations.py
+│           ├── price_fetcher.py
+│           └── brokers/        # Provider pattern (luno.py, extensible)
+│
+├── frontend/                   # React 19 + Vite + TS SPA
+│   ├── index.html
+│   ├── vite.config.ts          # Dev proxy /api → :8000, PWA plugin
+│   ├── public/                 # Favicon + PWA icons
+│   └── src/
+│       ├── main.tsx, App.tsx
+│       ├── lib/api.ts          # Typed ApiClient (fetch)
+│       ├── hooks/              # TanStack Query hooks per resource
+│       ├── pages/              # Dashboard, Accounts, Assets, Market,
+│       │                       # Transactions, Income, Settings
+│       ├── components/charts/  # Recharts wrappers
+│       ├── components/layout/  # Sidebar, MobileNav
+│       ├── components/ui/      # shadcn primitives
+│       └── types/api.ts        # Payload interfaces
 │
 └── database/
     ├── init.sql                # Initial schema + seed data
