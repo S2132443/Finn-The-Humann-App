@@ -15,9 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Expose port (Railway will set PORT env var)
+# Expose the application port
 EXPOSE 8000
 
-# Run the application
-# Railway sets PORT environment variable, default to 8000 for local dev
+# Run the application (honors PORT if set, defaults to 8000)
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
