@@ -17,7 +17,7 @@ The order of work, not the inventory. Status: Pending, In Progress, Done.
 
 | # | Phase | Next slice | Status |
 |---|-------|------------|--------|
-| 1 | A. Workflow and Hygiene Foundation | A1 Tooling config | Pending |
+| 1 | A. Workflow and Hygiene Foundation | A1 Tooling config | Done |
 | 2 | A. Workflow and Hygiene Foundation | A2 Remove dead code | Pending |
 | 3 | A. Workflow and Hygiene Foundation | A3 Config drift cleanup | Pending |
 | 4 | A. Workflow and Hygiene Foundation | A4 Test harness | Pending |
@@ -46,11 +46,15 @@ the starting point. Not work tracked here, just context.
 Groundwork that makes every later phase verifiable and keeps the repo aligned
 with the rules in CLAUDE.md. Sourced from the gap analysis of 2026-06-16.
 
-### A1 Tooling config
+### A1 Tooling config (Done 2026-06-16)
 
-Add a `pyproject.toml` configuring black and ruff so the mandatory format and
-lint workflow is actually enforceable. Line length 79 per the global standard.
-Bring modified files into compliance as they are touched, not in one sweep.
+Added `backend/pyproject.toml` configuring black (formatter) and ruff (lint-only)
+at line length 88, target py311. Applied a one-time black baseline sweep over
+`backend/app` in an isolated commit, recorded in `.git-blame-ignore-revs` so git
+blame skips it. ruff cleanup of the 87 existing findings is incremental as files
+are touched, not part of this slice. Spec:
+[docs/superpowers/specs/2026-06-16-a1-tooling-config-design.md](docs/superpowers/specs/2026-06-16-a1-tooling-config-design.md).
+Plan: [docs/superpowers/plans/2026-06-16-a1-tooling-config.md](docs/superpowers/plans/2026-06-16-a1-tooling-config.md).
 
 ### A2 Remove dead code
 

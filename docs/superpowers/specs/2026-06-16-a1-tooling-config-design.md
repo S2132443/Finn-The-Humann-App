@@ -1,7 +1,7 @@
 # Spec: A1 Tooling Config (black + ruff)
 
 Roadmap slice: [ROADMAP.md](../../../ROADMAP.md) Phase A / A1
-Status: Approved
+Status: Implemented
 Research: none
 
 ## Assumptions and Tradeoffs
@@ -41,13 +41,13 @@ Decisions and why:
 
 ## Success Criteria
 
-- [ ] `python -m black --check app` exits 0 from `backend/` (codebase is
+- [x] `python -m black --check app` exits 0 from `backend/` (codebase is
   black-clean at line length 88).
-- [ ] `python -m ruff check app` runs from `backend/` against the E/F/W/I rule
+- [x] `python -m ruff check app` runs from `backend/` against the E/F/W/I rule
   set without a configuration error (findings are allowed at this stage).
-- [ ] `pip install -r requirements.txt` installs black and ruff at the pinned
+- [x] `pip install -r requirements.txt` installs black and ruff at the pinned
   versions.
-- [ ] With the ignore-revs file active, `git blame` on a swept file attributes
+- [x] With the ignore-revs file active, `git blame` on a swept file attributes
   lines to their real authoring commit, not the formatting commit.
 
 ## Design
@@ -121,18 +121,18 @@ Three small commits keep config and reformat separable and keep blame clean:
 
 ## Verification Checklist
 
-- [ ] **KISS:** One config file and two pinned deps; no scripts, wrappers, or
+- [x] **KISS:** One config file and two pinned deps; no scripts, wrappers, or
   abstractions added.
-- [ ] **DRY:** Line length and target version are the single source for each
+- [x] **DRY:** Line length and target version are the single source for each
   tool; dev deps live in the one existing `# Development` block, not duplicated.
-- [ ] **Modular:** Tooling config is self-contained in `pyproject.toml` and can
+- [x] **Modular:** Tooling config is self-contained in `pyproject.toml` and can
   be removed without touching application code.
-- [ ] **Scalable:** Rule set and tool list expand by editing one file; nothing
+- [x] **Scalable:** Rule set and tool list expand by editing one file; nothing
   hard-codes per-file behavior beyond the documented `__init__.py` ignore.
-- [ ] **Architecture invariants:** No application code logic changes; the single
+- [x] **Architecture invariants:** No application code logic changes; the single
   FastAPI service, `services/` reuse, and API/web split are untouched.
-- [ ] **Standards:** black and ruff configured for modified-file workflow going
+- [x] **Standards:** black and ruff configured for modified-file workflow going
   forward; line length 88; no em-dashes in added files.
-- [ ] **Tests:** No behavior change to test; `black --check` and `ruff check`
+- [x] **Tests:** No behavior change to test; `black --check` and `ruff check`
   serve as the objective verification for this slice.
-- [ ] **Success criteria above are all met and were verified, not assumed.**
+- [x] **Success criteria above are all met and were verified, not assumed.**
