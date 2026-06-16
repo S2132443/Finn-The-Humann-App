@@ -18,7 +18,7 @@ The order of work, not the inventory. Status: Pending, In Progress, Done.
 | # | Phase | Next slice | Status |
 |---|-------|------------|--------|
 | 1 | A. Workflow and Hygiene Foundation | A1 Tooling config | Done |
-| 2 | A. Workflow and Hygiene Foundation | A2 Remove dead code | Pending |
+| 2 | A. Workflow and Hygiene Foundation | A2 Remove dead code | Done |
 | 3 | A. Workflow and Hygiene Foundation | A3 Config drift cleanup | Pending |
 | 4 | A. Workflow and Hygiene Foundation | A4 Test harness | Pending |
 | 5 | B. Automation | B1 Scheduled price updates | Pending |
@@ -56,11 +56,19 @@ are touched, not part of this slice. Spec:
 [docs/superpowers/specs/2026-06-16-a1-tooling-config-design.md](docs/superpowers/specs/2026-06-16-a1-tooling-config-design.md).
 Plan: [docs/superpowers/plans/2026-06-16-a1-tooling-config.md](docs/superpowers/plans/2026-06-16-a1-tooling-config.md).
 
-### A2 Remove dead code
+### A2 Remove dead code (Done 2026-06-16)
 
-Delete the orphaned `frontend/` directory (only stale `.pyc` bytecode remains,
-no source; architecture is a single service). Stop tracking `__pycache__`
-directories under `backend/app/` and add them to `.gitignore`.
+Investigation showed the original premise was already handled by git: the
+`frontend/` Python source had already been removed from the tracked tree (only
+untracked `.pyc` bytecode lingered on disk), and no `__pycache__` or `.pyc` was
+tracked anywhere (`.gitignore` already covers them). The only action was deleting
+the untracked local bytecode, which has zero repository impact and needs no
+commit. No spec or plan was warranted (Simplicity First).
+
+Note for future architecture work: a separate, real JS frontend exists on the
+`origin/gemini-frontend-test` branch (package.json, index.html, public assets).
+It is unrelated to the dead Python bytecode removed here and must not be confused
+with it. If a frontend direction is pursued, capture it as its own pending arc.
 
 ### A3 Config drift cleanup
 
