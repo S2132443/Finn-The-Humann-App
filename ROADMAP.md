@@ -19,7 +19,7 @@ The order of work, not the inventory. Status: Pending, In Progress, Done.
 |---|-------|------------|--------|
 | 1 | A. Workflow and Hygiene Foundation | A1 Tooling config | Done |
 | 2 | A. Workflow and Hygiene Foundation | A2 Remove dead code | Done |
-| 3 | A. Workflow and Hygiene Foundation | A3 Config drift cleanup | Pending |
+| 3 | A. Workflow and Hygiene Foundation | A3 Config drift cleanup | Done |
 | 4 | A. Workflow and Hygiene Foundation | A4 Test harness | Pending |
 | 5 | B. Automation | B1 Scheduled price updates | Pending |
 | 6 | B. Automation | B2 Automated monthly snapshots | Pending |
@@ -70,11 +70,18 @@ Note for future architecture work: a separate, real JS frontend exists on the
 It is unrelated to the dead Python bytecode removed here and must not be confused
 with it. If a frontend direction is pursued, capture it as its own pending arc.
 
-### A3 Config drift cleanup
+### A3 Config drift cleanup (Done 2026-06-16)
 
-Remove Flask leftovers from `.env.example` (`FLASK_ENV`, `API_BASE_URL`), correct
-`CORS_ORIGINS` from the old port 5000 to 8000, and reconcile the exchange-rate
-comment that claims rates are manual while the README says they auto-update.
+Removed dead config from `.env.example` (`FLASK_ENV`, `API_BASE_URL`, and the
+unused `*_TO_MYR` block whose comment wrongly promised a future API that already
+exists). Corrected the `CORS_ORIGINS` default from port 5000 to 8000 (drift fix
+only; CORS security hardening stays in D1). Added `LUNO_API_KEY_ID/SECRET` to the
+docker-compose backend so the documented LUNO sync works under Docker. Scope was
+expanded by user request to drop Railway entirely: deleted `.env.railway.example`,
+`.railwayignore`, `backend/railway.toml`, and scrubbed the Railway comments from
+`backend/Dockerfile`. Spec:
+[docs/superpowers/specs/2026-06-16-a3-config-drift-cleanup-design.md](docs/superpowers/specs/2026-06-16-a3-config-drift-cleanup-design.md).
+Plan: [docs/superpowers/plans/2026-06-16-a3-config-drift-cleanup.md](docs/superpowers/plans/2026-06-16-a3-config-drift-cleanup.md).
 
 ### A4 Test harness
 

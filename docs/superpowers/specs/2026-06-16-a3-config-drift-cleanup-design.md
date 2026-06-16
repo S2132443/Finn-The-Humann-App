@@ -1,7 +1,7 @@
 # Spec: A3 Config Drift Cleanup and Railway Removal
 
 Roadmap slice: [ROADMAP.md](../../../ROADMAP.md) Phase A / A3
-Status: Approved
+Status: Implemented
 Research: none
 
 ## Assumptions and Tradeoffs
@@ -38,15 +38,17 @@ Decisions and why:
 
 ## Success Criteria
 
-- [ ] `.env.example` contains no `API_BASE_URL`, no `FLASK_ENV`, and no
+- [x] `.env.example` contains no `API_BASE_URL`, no `FLASK_ENV`, and no
   `*_TO_MYR` exchange-rate vars or the related "MVP/future" comment.
-- [ ] `app/config.py` `CORS_ORIGINS` default uses port 8000, not 5000.
-- [ ] `docker-compose.yml` backend service passes `LUNO_API_KEY_ID` and
+- [x] `app/config.py` `CORS_ORIGINS` default uses port 8000, not 5000.
+- [x] `docker-compose.yml` backend service passes `LUNO_API_KEY_ID` and
   `LUNO_API_KEY_SECRET` with empty defaults.
-- [ ] `grep -ri railway` over the repository (excluding `.git`) returns nothing.
-- [ ] `.env.railway.example`, `.railwayignore`, and `backend/railway.toml` no
+- [x] `grep -ri railway . --exclude-dir=.git --exclude="*a3-config-drift-cleanup*"`
+  returns nothing. The A3 spec and plan docs legitimately mention Railway to
+  document this removal and are excluded; no config, code, or artifact mentions it.
+- [x] `.env.railway.example`, `.railwayignore`, and `backend/railway.toml` no
   longer exist.
-- [ ] `python -c "import app.config"` loads without error.
+- [x] `python -c "import app.config"` loads without error.
 
 ## Design
 
@@ -79,18 +81,18 @@ A set of surgical edits and file deletions. No application logic changes.
 
 ## Verification Checklist
 
-- [ ] **KISS:** Only edits and deletions; no new abstraction or rewrite of
+- [x] **KISS:** Only edits and deletions; no new abstraction or rewrite of
   Railway docs.
-- [ ] **DRY:** The two env templates no longer carry duplicated, contradictory
+- [x] **DRY:** The two env templates no longer carry duplicated, contradictory
   exchange-rate and Flask config; one clear `.env.example` remains.
-- [ ] **Modular:** Each change is independent; removing Railway files does not
+- [x] **Modular:** Each change is independent; removing Railway files does not
   affect the app, and the LUNO compose change is isolated to one service block.
-- [ ] **Scalable:** No change that constrains growth; CORS hardening path remains
+- [x] **Scalable:** No change that constrains growth; CORS hardening path remains
   open for D1.
-- [ ] **Architecture invariants:** Single FastAPI service unchanged; no API/web
+- [x] **Architecture invariants:** Single FastAPI service unchanged; no API/web
   logic or `services/` change.
-- [ ] **Standards:** No em-dashes; edits stay surgical; `.env.example` keeps only
+- [x] **Standards:** No em-dashes; edits stay surgical; `.env.example` keeps only
   variables the code or compose actually consumes.
-- [ ] **Tests:** No behavior change to unit-test; verification is the import
+- [x] **Tests:** No behavior change to unit-test; verification is the import
   check, the `grep -ri railway` check, and `docker compose config` parsing.
-- [ ] **Success criteria above are all met and were verified, not assumed.**
+- [x] **Success criteria above are all met and were verified, not assumed.**
