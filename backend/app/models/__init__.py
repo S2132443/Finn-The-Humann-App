@@ -18,5 +18,5 @@ __all__ = [
     "MonthlySnapshot",
     "AssetSnapshot",
     "Currency",
-    "StrategicAllocation"
+    "StrategicAllocation",
 ]

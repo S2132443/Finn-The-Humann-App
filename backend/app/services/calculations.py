@@ -17,7 +17,7 @@ from app.config import settings
 
 def get_exchange_rate(db: Session, currency_code: str) -> float:
     """Get exchange rate to MYR for a currency."""
-    if currency_code == 'MYR':
+    if currency_code == "MYR":
         return 1.0
     currency = db.query(Currency).filter(Currency.code == currency_code).first()
     return float(currency.exchange_rate_to_myr) if currency else 1.0
@@ -32,7 +32,9 @@ def calculate_networth(db: Session) -> dict:
     for account in accounts:
         for asset in account.assets:
             if asset.is_active and asset.current_value:
-                value_myr = float(asset.current_value) * get_exchange_rate(db, asset.currency)
+                value_myr = float(asset.current_value) * get_exchange_rate(
+                    db, asset.currency
+                )
                 if account.is_liability:
                     total_liabilities += value_myr
                 else:
@@ -98,7 +100,9 @@ def get_allocation_comparison(db: Session) -> dict:
                     .first()
                 )
                 if account:
-                    value_myr = float(asset.current_value) * get_exchange_rate(db, asset.currency)
+                    value_myr = float(asset.current_value) * get_exchange_rate(
+                        db, asset.currency
+                    )
                     class_value += value_myr
         class_values[asset_class.id] = class_value
         total_portfolio_value += class_value
@@ -106,7 +110,11 @@ def get_allocation_comparison(db: Session) -> dict:
     allocations = []
     for asset_class in asset_classes:
         class_value = class_values[asset_class.id]
-        percentage = (class_value / total_portfolio_value * 100) if total_portfolio_value > 0 else 0
+        percentage = (
+            (class_value / total_portfolio_value * 100)
+            if total_portfolio_value > 0
+            else 0
+        )
 
         strategic = (
             db.query(StrategicAllocation)
@@ -119,14 +127,16 @@ def get_allocation_comparison(db: Session) -> dict:
         )
         target_percentage = float(strategic.target_percentage) if strategic else 0.0
 
-        allocations.append({
-            "asset_class_id": asset_class.id,
-            "asset_class_name": asset_class.name,
-            "color": asset_class.color,
-            "total_value": class_value,
-            "percentage": percentage,
-            "target_percentage": target_percentage,
-        })
+        allocations.append(
+            {
+                "asset_class_id": asset_class.id,
+                "asset_class_name": asset_class.name,
+                "color": asset_class.color,
+                "total_value": class_value,
+                "percentage": percentage,
+                "target_percentage": target_percentage,
+            }
+        )
 
     return {"allocations": allocations, "total_value": total_portfolio_value}
 
@@ -156,6 +166,7 @@ def get_income_summary(db: Session) -> dict:
 # =============================================
 # Modified Dietz Helpers
 # =============================================
+
 
 def get_snapshot_market_value_by_class(
     db: Session,
@@ -251,7 +262,9 @@ def find_snapshot_on_or_before(db: Session, target_date: date):
     )
 
 
-def calculate_modified_dietz_return(db: Session, start_date=None, end_date=None, asset_class_id=None) -> dict:
+def calculate_modified_dietz_return(
+    db: Session, start_date=None, end_date=None, asset_class_id=None
+) -> dict:
     """Calculate Modified Dietz return for the portfolio or a single asset class."""
     if not end_date:
         end_date = date.today()
@@ -259,6 +272,7 @@ def calculate_modified_dietz_return(db: Session, start_date=None, end_date=None,
         start_date = date(end_date.year, 1, 1)
 
     from uuid import UUID as PyUUID
+
     ac_id = None
     if asset_class_id:
         try:
@@ -310,22 +324,28 @@ def calculate_modified_dietz_return(db: Session, start_date=None, end_date=None,
             c_beg = get_snapshot_market_value_by_class(db, begin_snapshot, ac.id)
             c_end = get_snapshot_market_value_by_class(db, end_snapshot, ac.id)
             c_cf, c_wcf = compute_weighted_cashflows(
-                db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, total_days, ac.id
+                db,
+                begin_snapshot.snapshot_date,
+                end_snapshot.snapshot_date,
+                total_days,
+                ac.id,
             )
             c_income = compute_period_income(
                 db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, ac.id
             )
             c_ret = compute_modified_dietz(c_beg, c_end, c_cf, c_income, c_wcf)
-            per_class.append({
-                "asset_class_id": ac.id,
-                "asset_class_name": ac.name,
-                "beginning_market_value": c_beg,
-                "ending_market_value": c_end,
-                "net_cashflow": c_cf,
-                "income": c_income,
-                "weighted_cashflow": c_wcf,
-                "return_percentage": c_ret,
-            })
+            per_class.append(
+                {
+                    "asset_class_id": ac.id,
+                    "asset_class_name": ac.name,
+                    "beginning_market_value": c_beg,
+                    "ending_market_value": c_end,
+                    "net_cashflow": c_cf,
+                    "income": c_income,
+                    "weighted_cashflow": c_wcf,
+                    "return_percentage": c_ret,
+                }
+            )
 
     return {
         "return_percentage": return_pct,
@@ -341,7 +361,9 @@ def calculate_modified_dietz_return(db: Session, start_date=None, end_date=None,
     }
 
 
-def get_daily_performance_series(db: Session, start_date=None, end_date=None, asset_class_id=None) -> dict:
+def get_daily_performance_series(
+    db: Session, start_date=None, end_date=None, asset_class_id=None
+) -> dict:
     """Generate a daily step-function cumulative return series."""
     if not end_date:
         end_date = date.today()

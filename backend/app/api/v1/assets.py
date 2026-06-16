@@ -9,19 +9,19 @@ from app.database import get_db
 from app.models.asset import Asset, AssetClass
 from app.models.currency import Currency
 from app.schemas.asset import (
-    AssetCreate, AssetUpdate, AssetResponse,
-    AssetClassResponse, AssetClassCreate,
-    AssetBulkPriceUpdateRequest
+    AssetCreate,
+    AssetUpdate,
+    AssetResponse,
+    AssetClassResponse,
+    AssetClassCreate,
+    AssetBulkPriceUpdateRequest,
 )
 
 router = APIRouter()
 
 
 @router.get("/classes", response_model=List[AssetClassResponse])
-def get_asset_classes(
-    include_inactive: bool = False,
-    db: Session = Depends(get_db)
-):
+def get_asset_classes(include_inactive: bool = False, db: Session = Depends(get_db)):
     """Get all asset classes."""
     query = db.query(AssetClass)
     if not include_inactive:
@@ -29,7 +29,9 @@ def get_asset_classes(
     return query.order_by(AssetClass.display_order).all()
 
 
-@router.post("/classes", response_model=AssetClassResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/classes", response_model=AssetClassResponse, status_code=status.HTTP_201_CREATED
+)
 def create_asset_class(asset_class: AssetClassCreate, db: Session = Depends(get_db)):
     """Create a new asset class."""
     db_class = AssetClass(**asset_class.model_dump())
@@ -46,32 +48,38 @@ def get_assets(
     account_id: UUID = None,
     asset_class_id: UUID = None,
     include_inactive: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get all assets with optional filtering."""
     query = db.query(Asset)
-    
+
     if not include_inactive:
         query = query.filter(Asset.is_active == True)
     if account_id:
         query = query.filter(Asset.account_id == account_id)
     if asset_class_id:
         query = query.filter(Asset.asset_class_id == asset_class_id)
-    
+
     assets = query.offset(skip).limit(limit).all()
-    
+
     # Calculate value in MYR for each asset
     result = []
     for asset in assets:
         asset_dict = AssetResponse.model_validate(asset)
-        if asset.currency != 'MYR' and asset.current_value:
-            currency = db.query(Currency).filter(Currency.code == asset.currency).first()
+        if asset.currency != "MYR" and asset.current_value:
+            currency = (
+                db.query(Currency).filter(Currency.code == asset.currency).first()
+            )
             if currency:
-                asset_dict.value_in_myr = float(asset.current_value) * float(currency.exchange_rate_to_myr)
+                asset_dict.value_in_myr = float(asset.current_value) * float(
+                    currency.exchange_rate_to_myr
+                )
         else:
-            asset_dict.value_in_myr = float(asset.current_value) if asset.current_value else 0
+            asset_dict.value_in_myr = (
+                float(asset.current_value) if asset.current_value else 0
+            )
         result.append(asset_dict)
-    
+
     return result
 
 
@@ -91,26 +99,26 @@ def get_asset(asset_id: UUID, db: Session = Depends(get_db)):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Asset not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found"
         )
-    
+
     # Calculate value in MYR
     response = AssetResponse.model_validate(asset)
-    if asset.currency != 'MYR' and asset.current_value:
+    if asset.currency != "MYR" and asset.current_value:
         currency = db.query(Currency).filter(Currency.code == asset.currency).first()
         if currency:
-            response.value_in_myr = float(asset.current_value) * float(currency.exchange_rate_to_myr)
+            response.value_in_myr = float(asset.current_value) * float(
+                currency.exchange_rate_to_myr
+            )
     else:
         response.value_in_myr = float(asset.current_value) if asset.current_value else 0
-    
+
     return response
 
 
 @router.put("/bulk-update", response_model=List[AssetResponse])
 def bulk_update_asset_prices(
-    request: AssetBulkPriceUpdateRequest,
-    db: Session = Depends(get_db)
+    request: AssetBulkPriceUpdateRequest, db: Session = Depends(get_db)
 ):
     """Bulk update asset prices/values in a single transaction."""
     updated_assets = []
@@ -119,7 +127,7 @@ def bulk_update_asset_prices(
         if not asset:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Asset {update.asset_id} not found"
+                detail=f"Asset {update.asset_id} not found",
             )
         if update.current_price is not None:
             asset.current_price = update.current_price
@@ -135,12 +143,18 @@ def bulk_update_asset_prices(
     for asset in updated_assets:
         db.refresh(asset)
         asset_resp = AssetResponse.model_validate(asset)
-        if asset.currency != 'MYR' and asset.current_value:
-            currency = db.query(Currency).filter(Currency.code == asset.currency).first()
+        if asset.currency != "MYR" and asset.current_value:
+            currency = (
+                db.query(Currency).filter(Currency.code == asset.currency).first()
+            )
             if currency:
-                asset_resp.value_in_myr = float(asset.current_value) * float(currency.exchange_rate_to_myr)
+                asset_resp.value_in_myr = float(asset.current_value) * float(
+                    currency.exchange_rate_to_myr
+                )
         else:
-            asset_resp.value_in_myr = float(asset.current_value) if asset.current_value else 0
+            asset_resp.value_in_myr = (
+                float(asset.current_value) if asset.current_value else 0
+            )
         result.append(asset_resp)
 
     return result
@@ -148,22 +162,19 @@ def bulk_update_asset_prices(
 
 @router.put("/{asset_id}", response_model=AssetResponse)
 def update_asset(
-    asset_id: UUID,
-    asset_update: AssetUpdate,
-    db: Session = Depends(get_db)
+    asset_id: UUID, asset_update: AssetUpdate, db: Session = Depends(get_db)
 ):
     """Update an asset."""
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Asset not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found"
         )
-    
+
     update_data = asset_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(asset, field, value)
-    
+
     db.commit()
     db.refresh(asset)
     return asset
@@ -175,10 +186,9 @@ def delete_asset(asset_id: UUID, db: Session = Depends(get_db)):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Asset not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found"
         )
-    
+
     # Soft delete
     asset.is_active = False
     db.commit()

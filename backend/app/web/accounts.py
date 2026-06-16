@@ -28,23 +28,30 @@ def index(request: Request, db: Session = Depends(get_db)):
         total_value = 0.0
         for asset in acc.assets:
             if asset.is_active and asset.current_value:
-                total_value += float(asset.current_value) * get_exchange_rate(db, asset.currency)
-        accounts_data.append({
-            "id": acc.id,
-            "name": acc.name,
-            "account_type": acc.account_type,
-            "institution": acc.institution,
-            "currency": acc.currency,
-            "is_liability": acc.is_liability,
-            "description": acc.description,
-            "total_value": total_value,
-        })
+                total_value += float(asset.current_value) * get_exchange_rate(
+                    db, asset.currency
+                )
+        accounts_data.append(
+            {
+                "id": acc.id,
+                "name": acc.name,
+                "account_type": acc.account_type,
+                "institution": acc.institution,
+                "currency": acc.currency,
+                "is_liability": acc.is_liability,
+                "description": acc.description,
+                "total_value": total_value,
+            }
+        )
 
-    return templates.TemplateResponse("accounts/index.html", {
-        "request": request,
-        "accounts": accounts_data,
-        "account_types": account_types,
-    })
+    return templates.TemplateResponse(
+        "accounts/index.html",
+        {
+            "request": request,
+            "accounts": accounts_data,
+            "account_types": account_types,
+        },
+    )
 
 
 @router.get("/add")
@@ -52,12 +59,15 @@ def add_form(request: Request, db: Session = Depends(get_db)):
     """Show add account form."""
     account_types = db.query(AccountType).all()
     currencies = db.query(Currency).all()
-    return templates.TemplateResponse("accounts/form.html", {
-        "request": request,
-        "account": None,
-        "account_types": account_types,
-        "currencies": currencies,
-    })
+    return templates.TemplateResponse(
+        "accounts/form.html",
+        {
+            "request": request,
+            "account": None,
+            "account_types": account_types,
+            "currencies": currencies,
+        },
+    )
 
 
 @router.post("/add")
@@ -99,25 +109,32 @@ def view(request: Request, account_id: UUID, db: Session = Depends(get_db)):
     total_value = 0.0
     for asset in account.assets:
         if asset.is_active:
-            value_myr = float(asset.current_value or 0) * get_exchange_rate(db, asset.currency)
+            value_myr = float(asset.current_value or 0) * get_exchange_rate(
+                db, asset.currency
+            )
             total_value += value_myr
-            assets_data.append({
-                "id": asset.id,
-                "name": asset.name,
-                "symbol": asset.symbol,
-                "quantity": asset.quantity,
-                "current_value": asset.current_value,
-                "currency": asset.currency,
-                "value_in_myr": value_myr,
-                "asset_class": asset.asset_class,
-            })
+            assets_data.append(
+                {
+                    "id": asset.id,
+                    "name": asset.name,
+                    "symbol": asset.symbol,
+                    "quantity": asset.quantity,
+                    "current_value": asset.current_value,
+                    "currency": asset.currency,
+                    "value_in_myr": value_myr,
+                    "asset_class": asset.asset_class,
+                }
+            )
 
-    return templates.TemplateResponse("accounts/view.html", {
-        "request": request,
-        "account": account,
-        "assets": assets_data,
-        "total_value": total_value,
-    })
+    return templates.TemplateResponse(
+        "accounts/view.html",
+        {
+            "request": request,
+            "account": account,
+            "assets": assets_data,
+            "total_value": total_value,
+        },
+    )
 
 
 @router.get("/{account_id}/edit")
@@ -130,12 +147,15 @@ def edit_form(request: Request, account_id: UUID, db: Session = Depends(get_db))
 
     account_types = db.query(AccountType).all()
     currencies = db.query(Currency).all()
-    return templates.TemplateResponse("accounts/form.html", {
-        "request": request,
-        "account": account,
-        "account_types": account_types,
-        "currencies": currencies,
-    })
+    return templates.TemplateResponse(
+        "accounts/form.html",
+        {
+            "request": request,
+            "account": account,
+            "account_types": account_types,
+            "currencies": currencies,
+        },
+    )
 
 
 @router.post("/{account_id}/edit")

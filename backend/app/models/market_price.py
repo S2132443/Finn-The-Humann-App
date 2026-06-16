@@ -21,7 +21,9 @@ class MarketPrice(Base):
     currency = Column(String(3), default="MYR")
     price_myr = Column(Numeric(20, 2))
     source = Column(String(20), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     asset_class = relationship("AssetClass")

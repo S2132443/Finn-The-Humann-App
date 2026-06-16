@@ -21,11 +21,11 @@ def get_transactions(
     start_date: date = None,
     end_date: date = None,
     transaction_type: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get all transactions with optional filtering."""
     query = db.query(Transaction)
-    
+
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
     if start_date:
@@ -34,11 +34,18 @@ def get_transactions(
         query = query.filter(Transaction.transaction_date <= end_date)
     if transaction_type:
         query = query.filter(Transaction.transaction_type == transaction_type)
-    
-    return query.order_by(Transaction.transaction_date.desc()).offset(skip).limit(limit).all()
+
+    return (
+        query.order_by(Transaction.transaction_date.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
-@router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED
+)
 def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db)):
     """Create a new transaction."""
     db_transaction = Transaction(**transaction.model_dump())
@@ -54,8 +61,7 @@ def get_transaction(transaction_id: UUID, db: Session = Depends(get_db)):
     transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     if not transaction:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
         )
     return transaction
 
@@ -66,10 +72,9 @@ def delete_transaction(transaction_id: UUID, db: Session = Depends(get_db)):
     transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     if not transaction:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
         )
-    
+
     db.delete(transaction)
     db.commit()
     return None

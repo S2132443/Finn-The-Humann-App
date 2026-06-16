@@ -16,17 +16,19 @@ router = APIRouter()
 def _get_market_data(db: Session):
     """Get all market prices with owned quantity info."""
     tracked = db.query(MarketPrice).order_by(MarketPrice.symbol).all()
-    asset_classes = {
-        ac.id: ac for ac in db.query(AssetClass).all()
-    }
+    asset_classes = {ac.id: ac for ac in db.query(AssetClass).all()}
 
     # Sum owned quantities per symbol
     owned = {}
-    assets = db.query(Asset).filter(
-        Asset.is_active == True,
-        Asset.symbol != None,
-        Asset.symbol != "",
-    ).all()
+    assets = (
+        db.query(Asset)
+        .filter(
+            Asset.is_active == True,
+            Asset.symbol != None,
+            Asset.symbol != "",
+        )
+        .all()
+    )
     for a in assets:
         if a.symbol in owned:
             owned[a.symbol]["quantity"] += float(a.quantity or 0)
@@ -46,22 +48,24 @@ def _get_market_data(db: Session):
         change_pct = (change / previous * 100) if previous > 0 else 0
         own = owned.get(mp.symbol)
 
-        result.append({
-            "symbol": mp.symbol,
-            "name": mp.name,
-            "current_price": current,
-            "previous_price": previous,
-            "price_myr": float(mp.price_myr) if mp.price_myr else current,
-            "currency": mp.currency or "MYR",
-            "change": change,
-            "change_pct": change_pct,
-            "source": mp.source,
-            "updated_at": mp.updated_at,
-            "asset_class_name": ac.name if ac else None,
-            "color": ac.color if ac else None,
-            "owned_qty": own["quantity"] if own else None,
-            "owned_value": own["value"] if own else None,
-        })
+        result.append(
+            {
+                "symbol": mp.symbol,
+                "name": mp.name,
+                "current_price": current,
+                "previous_price": previous,
+                "price_myr": float(mp.price_myr) if mp.price_myr else current,
+                "currency": mp.currency or "MYR",
+                "change": change,
+                "change_pct": change_pct,
+                "source": mp.source,
+                "updated_at": mp.updated_at,
+                "asset_class_name": ac.name if ac else None,
+                "color": ac.color if ac else None,
+                "owned_qty": own["quantity"] if own else None,
+                "owned_value": own["value"] if own else None,
+            }
+        )
     return result
 
 
@@ -75,11 +79,14 @@ def index(request: Request, db: Session = Depends(get_db)):
         .order_by(AssetClass.display_order)
         .all()
     )
-    return templates.TemplateResponse("market/index.html", {
-        "request": request,
-        "market_data": market_data,
-        "asset_classes": asset_classes,
-    })
+    return templates.TemplateResponse(
+        "market/index.html",
+        {
+            "request": request,
+            "market_data": market_data,
+            "asset_classes": asset_classes,
+        },
+    )
 
 
 @router.post("/add")

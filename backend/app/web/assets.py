@@ -24,21 +24,27 @@ def _get_assets_with_display_data(db: Session):
     assets = db.query(Asset).filter(Asset.is_active == True).all()
     result = []
     for asset in assets:
-        value_myr = float(asset.current_value or 0) * get_exchange_rate(db, asset.currency)
-        result.append({
-            "id": asset.id,
-            "name": asset.name,
-            "symbol": asset.symbol,
-            "quantity": asset.quantity,
-            "current_price": asset.current_price,
-            "current_value": asset.current_value,
-            "currency": asset.currency,
-            "cost_basis": asset.cost_basis,
-            "value_in_myr": value_myr,
-            "asset_class_name": asset.asset_class.name if asset.asset_class else None,
-            "asset_class_id": asset.asset_class_id,
-            "color": asset.asset_class.color if asset.asset_class else None,
-        })
+        value_myr = float(asset.current_value or 0) * get_exchange_rate(
+            db, asset.currency
+        )
+        result.append(
+            {
+                "id": asset.id,
+                "name": asset.name,
+                "symbol": asset.symbol,
+                "quantity": asset.quantity,
+                "current_price": asset.current_price,
+                "current_value": asset.current_value,
+                "currency": asset.currency,
+                "cost_basis": asset.cost_basis,
+                "value_in_myr": value_myr,
+                "asset_class_name": (
+                    asset.asset_class.name if asset.asset_class else None
+                ),
+                "asset_class_id": asset.asset_class_id,
+                "color": asset.asset_class.color if asset.asset_class else None,
+            }
+        )
     return result
 
 
@@ -46,27 +52,43 @@ def _get_assets_with_display_data(db: Session):
 def index(request: Request, db: Session = Depends(get_db)):
     """List all assets."""
     assets = _get_assets_with_display_data(db)
-    asset_classes = db.query(AssetClass).filter(AssetClass.is_active == True).order_by(AssetClass.display_order).all()
-    return templates.TemplateResponse("assets/index.html", {
-        "request": request,
-        "assets": assets,
-        "asset_classes": asset_classes,
-    })
+    asset_classes = (
+        db.query(AssetClass)
+        .filter(AssetClass.is_active == True)
+        .order_by(AssetClass.display_order)
+        .all()
+    )
+    return templates.TemplateResponse(
+        "assets/index.html",
+        {
+            "request": request,
+            "assets": assets,
+            "asset_classes": asset_classes,
+        },
+    )
 
 
 @router.get("/add")
 def add_form(request: Request, db: Session = Depends(get_db)):
     """Show add asset form."""
     accounts = db.query(Account).filter(Account.is_active == True).all()
-    asset_classes = db.query(AssetClass).filter(AssetClass.is_active == True).order_by(AssetClass.display_order).all()
+    asset_classes = (
+        db.query(AssetClass)
+        .filter(AssetClass.is_active == True)
+        .order_by(AssetClass.display_order)
+        .all()
+    )
     currencies = db.query(Currency).all()
-    return templates.TemplateResponse("assets/form.html", {
-        "request": request,
-        "asset": None,
-        "accounts": accounts,
-        "asset_classes": asset_classes,
-        "currencies": currencies,
-    })
+    return templates.TemplateResponse(
+        "assets/form.html",
+        {
+            "request": request,
+            "asset": None,
+            "accounts": accounts,
+            "asset_classes": asset_classes,
+            "currencies": currencies,
+        },
+    )
 
 
 @router.post("/add")
@@ -114,21 +136,26 @@ def bulk_update_form(request: Request, db: Session = Depends(get_db)):
     # Serialize for Alpine.js (UUIDs → strings, Decimals → floats)
     assets_for_json = []
     for a in assets:
-        assets_for_json.append({
-            "id": str(a["id"]),
-            "name": a["name"],
-            "symbol": a["symbol"],
-            "quantity": float(a["quantity"]) if a["quantity"] else 0,
-            "current_price": float(a["current_price"]) if a["current_price"] else 0,
-            "current_value": float(a["current_value"]) if a["current_value"] else 0,
-            "asset_class_name": a["asset_class_name"],
-            "color": a["color"],
-        })
-    return templates.TemplateResponse("assets/bulk_update.html", {
-        "request": request,
-        "assets": assets,
-        "assets_json": json.dumps(assets_for_json),
-    })
+        assets_for_json.append(
+            {
+                "id": str(a["id"]),
+                "name": a["name"],
+                "symbol": a["symbol"],
+                "quantity": float(a["quantity"]) if a["quantity"] else 0,
+                "current_price": float(a["current_price"]) if a["current_price"] else 0,
+                "current_value": float(a["current_value"]) if a["current_value"] else 0,
+                "asset_class_name": a["asset_class_name"],
+                "color": a["color"],
+            }
+        )
+    return templates.TemplateResponse(
+        "assets/bulk_update.html",
+        {
+            "request": request,
+            "assets": assets,
+            "assets_json": json.dumps(assets_for_json),
+        },
+    )
 
 
 @router.post("/bulk-update")
@@ -172,15 +199,23 @@ def edit_form(request: Request, asset_id: UUID, db: Session = Depends(get_db)):
         return RedirectResponse(url="/assets", status_code=303)
 
     accounts = db.query(Account).filter(Account.is_active == True).all()
-    asset_classes = db.query(AssetClass).filter(AssetClass.is_active == True).order_by(AssetClass.display_order).all()
+    asset_classes = (
+        db.query(AssetClass)
+        .filter(AssetClass.is_active == True)
+        .order_by(AssetClass.display_order)
+        .all()
+    )
     currencies = db.query(Currency).all()
-    return templates.TemplateResponse("assets/form.html", {
-        "request": request,
-        "asset": asset,
-        "accounts": accounts,
-        "asset_classes": asset_classes,
-        "currencies": currencies,
-    })
+    return templates.TemplateResponse(
+        "assets/form.html",
+        {
+            "request": request,
+            "asset": asset,
+            "accounts": accounts,
+            "asset_classes": asset_classes,
+            "currencies": currencies,
+        },
+    )
 
 
 @router.post("/{asset_id}/edit")

@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SyncResult:
     """Result of a broker balance sync."""
+
     provider: str = ""
     synced: int = 0
     created: int = 0
@@ -35,6 +36,7 @@ class SyncResult:
 
 class BrokerProvider(ABC):
     """Base class for broker integrations."""
+
     name: str = ""
     display_name: str = ""
     config_keys: list[str] = []

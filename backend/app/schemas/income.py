@@ -8,10 +8,12 @@ from datetime import datetime, date
 
 class IncomeBase(BaseModel):
     """Base income schema."""
-    
+
     asset_id: Optional[UUID] = None
     account_id: UUID
-    income_type: str = Field(..., min_length=1, max_length=50)  # dividend, rental, interest, distribution
+    income_type: str = Field(
+        ..., min_length=1, max_length=50
+    )  # dividend, rental, interest, distribution
     amount: float
     currency: str = Field(default="MYR", max_length=3)
     income_date: date
@@ -21,16 +23,17 @@ class IncomeBase(BaseModel):
 
 class IncomeCreate(IncomeBase):
     """Income creation schema."""
+
     pass
 
 
 class IncomeResponse(IncomeBase):
     """Income response schema."""
-    
+
     id: UUID
     created_at: datetime
     asset_name: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 

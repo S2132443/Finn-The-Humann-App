@@ -8,7 +8,7 @@ from uuid import UUID
 
 class NetWorthResponse(BaseModel):
     """Current net worth response schema."""
-    
+
     total_assets: float
     total_liabilities: float
     net_worth: float
@@ -18,7 +18,7 @@ class NetWorthResponse(BaseModel):
 
 class NetWorthHistoryItem(BaseModel):
     """Single net worth history item."""
-    
+
     date: date
     total_assets: float
     total_liabilities: float
@@ -27,14 +27,14 @@ class NetWorthHistoryItem(BaseModel):
 
 class NetWorthHistory(BaseModel):
     """Net worth history response schema."""
-    
+
     history: List[NetWorthHistoryItem]
     base_currency: str = "MYR"
 
 
 class TWRRResponse(BaseModel):
     """Time-Weighted Rate of Return response schema."""
-    
+
     twrr: float  # As percentage
     annualized_twrr: Optional[float] = None
     period_start: date

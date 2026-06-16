@@ -8,8 +8,11 @@ from uuid import UUID
 from app.database import get_db
 from app.models.account import Account, AccountType
 from app.schemas.account import (
-    AccountCreate, AccountUpdate, AccountResponse, 
-    AccountTypeResponse, AccountWithAssets
+    AccountCreate,
+    AccountUpdate,
+    AccountResponse,
+    AccountTypeResponse,
+    AccountWithAssets,
 )
 
 router = APIRouter()
@@ -26,7 +29,7 @@ def get_accounts(
     skip: int = 0,
     limit: int = 100,
     include_inactive: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get all accounts."""
     query = db.query(Account)
@@ -51,17 +54,14 @@ def get_account(account_id: UUID, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.id == account_id).first()
     if not account:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
         )
-    
+
     # Calculate total value
     total_value = sum(
-        float(asset.current_value or 0) 
-        for asset in account.assets 
-        if asset.is_active
+        float(asset.current_value or 0) for asset in account.assets if asset.is_active
     )
-    
+
     # Create response with total value
     response = AccountWithAssets.model_validate(account)
     response.total_value = total_value
@@ -70,22 +70,19 @@ def get_account(account_id: UUID, db: Session = Depends(get_db)):
 
 @router.put("/{account_id}", response_model=AccountResponse)
 def update_account(
-    account_id: UUID,
-    account_update: AccountUpdate,
-    db: Session = Depends(get_db)
+    account_id: UUID, account_update: AccountUpdate, db: Session = Depends(get_db)
 ):
     """Update an account."""
     account = db.query(Account).filter(Account.id == account_id).first()
     if not account:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
         )
-    
+
     update_data = account_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(account, field, value)
-    
+
     db.commit()
     db.refresh(account)
     return account
@@ -97,10 +94,9 @@ def delete_account(account_id: UUID, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.id == account_id).first()
     if not account:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
         )
-    
+
     # Soft delete
     account.is_active = False
     db.commit()

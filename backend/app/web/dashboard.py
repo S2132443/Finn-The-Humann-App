@@ -50,11 +50,14 @@ def index(request: Request, db: Session = Depends(get_db)):
         "daily_series": daily_series.get("series", []),
     }
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "networth": networth,
-        "allocation": allocation,
-        "income_summary": income_summary,
-        "modified_dietz": modified_dietz,
-        "chart_data_json": json.dumps(chart_data, default=_json_serial),
-    })
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "networth": networth,
+            "allocation": allocation,
+            "income_summary": income_summary,
+            "modified_dietz": modified_dietz,
+            "chart_data_json": json.dumps(chart_data, default=_json_serial),
+        },
+    )

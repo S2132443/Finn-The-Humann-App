@@ -25,11 +25,11 @@ def get_income(
     income_type: str = None,
     start_date: date = None,
     end_date: date = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get all income records with optional filtering."""
     query = db.query(Income)
-    
+
     if account_id:
         query = query.filter(Income.account_id == account_id)
     if asset_id:
@@ -40,9 +40,11 @@ def get_income(
         query = query.filter(Income.income_date >= start_date)
     if end_date:
         query = query.filter(Income.income_date <= end_date)
-    
-    income_records = query.order_by(Income.income_date.desc()).offset(skip).limit(limit).all()
-    
+
+    income_records = (
+        query.order_by(Income.income_date.desc()).offset(skip).limit(limit).all()
+    )
+
     # Add asset name to response
     result = []
     for record in income_records:
@@ -50,7 +52,7 @@ def get_income(
         if record.asset:
             response.asset_name = record.asset.name
         result.append(response)
-    
+
     return result
 
 
@@ -66,9 +68,7 @@ def create_income(income: IncomeCreate, db: Session = Depends(get_db)):
 
 @router.get("/summary", response_model=IncomeSummary)
 def get_income_summary(
-    start_date: date = None,
-    end_date: date = None,
-    db: Session = Depends(get_db)
+    start_date: date = None, end_date: date = None, db: Session = Depends(get_db)
 ):
     """Get income summary with totals by type, month, and asset class."""
     query = db.query(Income).options(
@@ -91,8 +91,10 @@ def get_income_summary(
     for record in income_records:
         # Convert to MYR if needed
         amount_myr = float(record.amount)
-        if record.currency != 'MYR':
-            currency = db.query(Currency).filter(Currency.code == record.currency).first()
+        if record.currency != "MYR":
+            currency = (
+                db.query(Currency).filter(Currency.code == record.currency).first()
+            )
             if currency:
                 amount_myr = float(record.amount) * float(currency.exchange_rate_to_myr)
 
@@ -121,7 +123,7 @@ def get_income_summary(
         total_income=total_income,
         by_type=by_type,
         by_month=list(by_month.values()),
-        by_asset_class=by_asset_class
+        by_asset_class=by_asset_class,
     )
 
 
@@ -131,10 +133,9 @@ def get_income_record(income_id: UUID, db: Session = Depends(get_db)):
     income = db.query(Income).filter(Income.id == income_id).first()
     if not income:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Income record not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Income record not found"
         )
-    
+
     response = IncomeResponse.model_validate(income)
     if income.asset:
         response.asset_name = income.asset.name
@@ -147,10 +148,9 @@ def delete_income(income_id: UUID, db: Session = Depends(get_db)):
     income = db.query(Income).filter(Income.id == income_id).first()
     if not income:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Income record not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Income record not found"
         )
-    
+
     db.delete(income)
     db.commit()
     return None

@@ -113,8 +113,10 @@ class LunoProvider(BrokerProvider):
                 continue
 
             # Determine asset class
-            asset_class_id = btc_class.id if symbol == "BTC" and btc_class else (
-                alt_class.id if alt_class else None
+            asset_class_id = (
+                btc_class.id
+                if symbol == "BTC" and btc_class
+                else (alt_class.id if alt_class else None)
             )
 
             # Determine display name
@@ -141,6 +143,7 @@ class LunoProvider(BrokerProvider):
 
         # Zero out existing LUNO assets that weren't returned by API
         from app.models.asset import Asset
+
         existing_assets = (
             db.query(Asset)
             .filter(
@@ -151,7 +154,11 @@ class LunoProvider(BrokerProvider):
             .all()
         )
         for asset in existing_assets:
-            if asset.symbol not in seen_symbols and asset.quantity and float(asset.quantity) > 0:
+            if (
+                asset.symbol not in seen_symbols
+                and asset.quantity
+                and float(asset.quantity) > 0
+            ):
                 asset.quantity = 0
                 asset.current_value = 0
                 result.zeroed += 1

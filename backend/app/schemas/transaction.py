@@ -10,7 +10,9 @@ class TransactionBase(BaseModel):
     """Base transaction schema."""
 
     account_id: UUID
-    transaction_type: str = Field(..., min_length=1, max_length=50)  # deposit, withdrawal, transfer, fee
+    transaction_type: str = Field(
+        ..., min_length=1, max_length=50
+    )  # deposit, withdrawal, transfer, fee
     amount: float
     currency: str = Field(default="MYR", max_length=3)
     transaction_date: date
@@ -21,14 +23,15 @@ class TransactionBase(BaseModel):
 
 class TransactionCreate(TransactionBase):
     """Transaction creation schema."""
+
     pass
 
 
 class TransactionResponse(TransactionBase):
     """Transaction response schema."""
-    
+
     id: UUID
     created_at: datetime
-    
+
     class Config:
         from_attributes = True

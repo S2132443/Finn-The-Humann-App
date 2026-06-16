@@ -8,7 +8,7 @@ from datetime import date
 
 class StrategicAllocationCreate(BaseModel):
     """Strategic allocation creation schema."""
-    
+
     asset_class_id: UUID
     target_percentage: float = Field(..., ge=0, le=100)
     effective_date: date
@@ -17,21 +17,21 @@ class StrategicAllocationCreate(BaseModel):
 
 class StrategicAllocationResponse(BaseModel):
     """Strategic allocation response schema."""
-    
+
     id: UUID
     asset_class_id: UUID
     asset_class_name: Optional[str] = None
     target_percentage: float
     effective_date: date
     notes: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class AllocationResponse(BaseModel):
     """Current allocation response schema."""
-    
+
     asset_class_id: UUID
     asset_class_name: str
     color: str
@@ -42,9 +42,9 @@ class AllocationResponse(BaseModel):
 
 class AllocationComparison(BaseModel):
     """Allocation comparison (Actual vs SAA) response schema."""
-    
+
     allocations: List[AllocationResponse]
     total_value: float
-    
+
     # Historical data for charts
     history: Optional[List[dict]] = None

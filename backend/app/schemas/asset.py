@@ -8,21 +8,21 @@ from datetime import datetime, date
 
 class AssetClassResponse(BaseModel):
     """Asset class response schema."""
-    
+
     id: UUID
     name: str
     description: Optional[str] = None
     color: str = "#6c757d"
     display_order: int = 0
     is_active: bool = True
-    
+
     class Config:
         from_attributes = True
 
 
 class AssetClassCreate(BaseModel):
     """Asset class creation schema."""
-    
+
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
     color: str = Field(default="#6c757d", max_length=7)
@@ -31,7 +31,7 @@ class AssetClassCreate(BaseModel):
 
 class AssetBase(BaseModel):
     """Base asset schema."""
-    
+
     account_id: UUID
     asset_class_id: Optional[UUID] = None
     name: str = Field(..., min_length=1, max_length=255)
@@ -47,12 +47,13 @@ class AssetBase(BaseModel):
 
 class AssetCreate(AssetBase):
     """Asset creation schema."""
+
     pass
 
 
 class AssetUpdate(BaseModel):
     """Asset update schema."""
-    
+
     account_id: Optional[UUID] = None
     asset_class_id: Optional[UUID] = None
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -69,6 +70,7 @@ class AssetUpdate(BaseModel):
 
 class AssetBulkPriceUpdate(BaseModel):
     """Schema for a single asset in a bulk price update."""
+
     asset_id: UUID
     current_price: Optional[float] = None
     current_value: Optional[float] = None
@@ -77,18 +79,19 @@ class AssetBulkPriceUpdate(BaseModel):
 
 class AssetBulkPriceUpdateRequest(BaseModel):
     """Schema for bulk price update request."""
+
     updates: List[AssetBulkPriceUpdate]
 
 
 class AssetResponse(AssetBase):
     """Asset response schema."""
-    
+
     id: UUID
     is_active: bool
     created_at: datetime
     updated_at: datetime
     asset_class: Optional[AssetClassResponse] = None
     value_in_myr: Optional[float] = None
-    
+
     class Config:
         from_attributes = True

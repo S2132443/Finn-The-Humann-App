@@ -184,7 +184,7 @@ async def update_all_prices(db: Session) -> dict:
         class_map[ac.id] = ac.name
 
     # Group by source
-    luno_symbols = []   # [(MarketPrice, class_name)]
+    luno_symbols = []  # [(MarketPrice, class_name)]
     yahoo_entries = []  # [(MarketPrice, class_name, yahoo_symbol)]
 
     for mp in tracked:
@@ -252,9 +252,7 @@ async def update_all_prices(db: Session) -> dict:
     db.commit()
 
     # --- Push prices to portfolio assets ---
-    updated_symbols = {
-        mp.symbol: mp for mp in tracked if mp.current_price is not None
-    }
+    updated_symbols = {mp.symbol: mp for mp in tracked if mp.current_price is not None}
     if updated_symbols:
         assets = (
             db.query(Asset)
@@ -266,9 +264,9 @@ async def update_all_prices(db: Session) -> dict:
             if mp:
                 asset.current_price = mp.current_price
                 if asset.quantity and asset.quantity > 0:
-                    asset.current_value = Decimal(str(
-                        round(float(asset.quantity) * float(mp.current_price), 2)
-                    ))
+                    asset.current_value = Decimal(
+                        str(round(float(asset.quantity) * float(mp.current_price), 2))
+                    )
         db.commit()
 
     return result

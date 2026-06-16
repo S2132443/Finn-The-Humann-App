@@ -10,10 +10,15 @@ from app.models.snapshot import MonthlySnapshot
 from app.models.income import Income
 from app.config import settings
 from app.schemas.calculations import (
-    NetWorthResponse, NetWorthHistory, NetWorthHistoryItem,
-    TWRRResponse, YieldResponse,
-    AssetClassReturn, ModifiedDietzResponse,
-    DailyReturnPoint, DailyPerformanceSeriesResponse
+    NetWorthResponse,
+    NetWorthHistory,
+    NetWorthHistoryItem,
+    TWRRResponse,
+    YieldResponse,
+    AssetClassReturn,
+    ModifiedDietzResponse,
+    DailyReturnPoint,
+    DailyPerformanceSeriesResponse,
 )
 from app.schemas.allocation import AllocationResponse, AllocationComparison
 from app.services.calculations import (
@@ -60,9 +65,7 @@ def get_allocation_comparison(db: Session = Depends(get_db)):
 
 @router.get("/returns/twrr", response_model=TWRRResponse)
 def calculate_twrr(
-    start_date: date = None,
-    end_date: date = None,
-    db: Session = Depends(get_db)
+    start_date: date = None, end_date: date = None, db: Session = Depends(get_db)
 ):
     """Calculate Time-Weighted Rate of Return (TWRR)."""
     from app.models.transaction import Transaction
@@ -72,21 +75,30 @@ def calculate_twrr(
     if not start_date:
         start_date = end_date - relativedelta(years=1)
 
-    snapshots = db.query(MonthlySnapshot).filter(
-        MonthlySnapshot.snapshot_date >= start_date,
-        MonthlySnapshot.snapshot_date <= end_date
-    ).order_by(MonthlySnapshot.snapshot_date).all()
+    snapshots = (
+        db.query(MonthlySnapshot)
+        .filter(
+            MonthlySnapshot.snapshot_date >= start_date,
+            MonthlySnapshot.snapshot_date <= end_date,
+        )
+        .order_by(MonthlySnapshot.snapshot_date)
+        .all()
+    )
 
     if len(snapshots) < 2:
         return TWRRResponse(
-            twrr=0.0, annualized_twrr=0.0,
-            period_start=start_date, period_end=end_date
+            twrr=0.0, annualized_twrr=0.0, period_start=start_date, period_end=end_date
         )
 
-    transactions = db.query(Transaction).filter(
-        Transaction.transaction_date >= start_date,
-        Transaction.transaction_date <= end_date
-    ).order_by(Transaction.transaction_date).all()
+    transactions = (
+        db.query(Transaction)
+        .filter(
+            Transaction.transaction_date >= start_date,
+            Transaction.transaction_date <= end_date,
+        )
+        .order_by(Transaction.transaction_date)
+        .all()
+    )
 
     cash_flows = {}
     for txn in transactions:
@@ -94,9 +106,9 @@ def calculate_twrr(
         if txn_date not in cash_flows:
             cash_flows[txn_date] = 0.0
         amount = float(txn.amount) * get_exchange_rate(db, txn.currency)
-        if txn.transaction_type in ['deposit', 'transfer_in']:
+        if txn.transaction_type in ["deposit", "transfer_in"]:
             cash_flows[txn_date] += amount
-        elif txn.transaction_type in ['withdrawal', 'transfer_out']:
+        elif txn.transaction_type in ["withdrawal", "transfer_out"]:
             cash_flows[txn_date] -= amount
 
     sub_period_returns = []
@@ -118,33 +130,35 @@ def calculate_twrr(
         else:
             hpr = 0.0
 
-        sub_period_returns.append({
-            "period_start": prev_snapshot.snapshot_date.isoformat(),
-            "period_end": curr_snapshot.snapshot_date.isoformat(),
-            "return": hpr * 100
-        })
-        cumulative_return *= (1 + hpr)
+        sub_period_returns.append(
+            {
+                "period_start": prev_snapshot.snapshot_date.isoformat(),
+                "period_end": curr_snapshot.snapshot_date.isoformat(),
+                "return": hpr * 100,
+            }
+        )
+        cumulative_return *= 1 + hpr
 
     twrr = (cumulative_return - 1) * 100
     days = (end_date - start_date).days
     years = days / 365.25
     if years > 0 and cumulative_return > 0:
-        annualized_twrr = (pow(cumulative_return, 1/years) - 1) * 100
+        annualized_twrr = (pow(cumulative_return, 1 / years) - 1) * 100
     else:
         annualized_twrr = 0.0
 
     return TWRRResponse(
-        twrr=twrr, annualized_twrr=annualized_twrr,
-        period_start=start_date, period_end=end_date,
-        sub_period_returns=sub_period_returns
+        twrr=twrr,
+        annualized_twrr=annualized_twrr,
+        period_start=start_date,
+        period_end=end_date,
+        sub_period_returns=sub_period_returns,
     )
 
 
 @router.get("/yield", response_model=YieldResponse)
 def calculate_yield(
-    start_date: date = None,
-    end_date: date = None,
-    db: Session = Depends(get_db)
+    start_date: date = None, end_date: date = None, db: Session = Depends(get_db)
 ):
     """Calculate investment yield (income / average portfolio value)."""
     if not end_date:
@@ -152,19 +166,24 @@ def calculate_yield(
     if not start_date:
         start_date = end_date - relativedelta(years=1)
 
-    income_records = db.query(Income).filter(
-        Income.income_date >= start_date,
-        Income.income_date <= end_date
-    ).all()
+    income_records = (
+        db.query(Income)
+        .filter(Income.income_date >= start_date, Income.income_date <= end_date)
+        .all()
+    )
 
     total_income = 0.0
     for record in income_records:
         total_income += float(record.amount) * get_exchange_rate(db, record.currency)
 
-    snapshots = db.query(MonthlySnapshot).filter(
-        MonthlySnapshot.snapshot_date >= start_date,
-        MonthlySnapshot.snapshot_date <= end_date
-    ).all()
+    snapshots = (
+        db.query(MonthlySnapshot)
+        .filter(
+            MonthlySnapshot.snapshot_date >= start_date,
+            MonthlySnapshot.snapshot_date <= end_date,
+        )
+        .all()
+    )
 
     if snapshots:
         avg_value = sum(float(s.net_worth) for s in snapshots) / len(snapshots)
@@ -182,7 +201,7 @@ def calculate_yield(
         yield_percentage=yield_percentage,
         period_start=start_date,
         period_end=end_date,
-        annualized_yield=annualized_yield
+        annualized_yield=annualized_yield,
     )
 
 
@@ -200,6 +219,7 @@ def calculate_modified_dietz(
         start_date = date(end_date.year, 1, 1)
 
     from uuid import UUID as PyUUID
+
     ac_id = None
     if asset_class_id:
         try:
@@ -212,10 +232,15 @@ def calculate_modified_dietz(
 
     if not begin_snapshot or not end_snapshot or begin_snapshot.id == end_snapshot.id:
         return ModifiedDietzResponse(
-            return_percentage=0.0, beginning_market_value=0.0,
-            ending_market_value=0.0, net_cashflow=0.0, income=0.0,
-            weighted_cashflow=0.0, period_start=start_date,
-            period_end=end_date, total_days=0,
+            return_percentage=0.0,
+            beginning_market_value=0.0,
+            ending_market_value=0.0,
+            net_cashflow=0.0,
+            income=0.0,
+            weighted_cashflow=0.0,
+            period_start=start_date,
+            period_end=end_date,
+            total_days=0,
         )
 
     total_days = (end_snapshot.snapshot_date - begin_snapshot.snapshot_date).days
@@ -235,6 +260,7 @@ def calculate_modified_dietz(
     per_class = None
     if not ac_id:
         from app.models.asset import AssetClass
+
         per_class = []
         asset_classes = (
             db.query(AssetClass)
@@ -246,24 +272,39 @@ def calculate_modified_dietz(
             c_beg = get_snapshot_market_value_by_class(db, begin_snapshot, ac.id)
             c_end = get_snapshot_market_value_by_class(db, end_snapshot, ac.id)
             c_cf, c_wcf = compute_weighted_cashflows(
-                db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, total_days, ac.id
+                db,
+                begin_snapshot.snapshot_date,
+                end_snapshot.snapshot_date,
+                total_days,
+                ac.id,
             )
             c_income = compute_period_income(
                 db, begin_snapshot.snapshot_date, end_snapshot.snapshot_date, ac.id
             )
             c_ret = compute_modified_dietz(c_beg, c_end, c_cf, c_income, c_wcf)
-            per_class.append(AssetClassReturn(
-                asset_class_id=ac.id, asset_class_name=ac.name,
-                beginning_market_value=c_beg, ending_market_value=c_end,
-                net_cashflow=c_cf, income=c_income,
-                weighted_cashflow=c_wcf, return_percentage=c_ret,
-            ))
+            per_class.append(
+                AssetClassReturn(
+                    asset_class_id=ac.id,
+                    asset_class_name=ac.name,
+                    beginning_market_value=c_beg,
+                    ending_market_value=c_end,
+                    net_cashflow=c_cf,
+                    income=c_income,
+                    weighted_cashflow=c_wcf,
+                    return_percentage=c_ret,
+                )
+            )
 
     return ModifiedDietzResponse(
-        return_percentage=return_pct, beginning_market_value=beg_mv,
-        ending_market_value=end_mv, net_cashflow=net_cf, income=income,
-        weighted_cashflow=weighted_cf, period_start=start_date,
-        period_end=end_date, total_days=total_days,
+        return_percentage=return_pct,
+        beginning_market_value=beg_mv,
+        ending_market_value=end_mv,
+        net_cashflow=net_cf,
+        income=income,
+        weighted_cashflow=weighted_cf,
+        period_start=start_date,
+        period_end=end_date,
+        total_days=total_days,
         per_class_returns=per_class,
     )
 
@@ -299,8 +340,11 @@ def get_daily_performance_series_endpoint(
     baseline = find_snapshot_on_or_before(db, start_date)
     if not baseline:
         return DailyPerformanceSeriesResponse(
-            series=[], period_start=start_date, period_end=end_date,
-            asset_class_id=ac_id, asset_class_name=ac_name,
+            series=[],
+            period_start=start_date,
+            period_end=end_date,
+            asset_class_id=ac_id,
+            asset_class_name=ac_name,
         )
 
     snapshots_in_range = (
@@ -336,10 +380,15 @@ def get_daily_performance_series_endpoint(
     while day <= end_date:
         if day in snapshot_returns:
             current_return = snapshot_returns[day]
-        series.append(DailyReturnPoint(date=day, cumulative_return=round(current_return, 4)))
+        series.append(
+            DailyReturnPoint(date=day, cumulative_return=round(current_return, 4))
+        )
         day += timedelta(days=1)
 
     return DailyPerformanceSeriesResponse(
-        series=series, period_start=start_date, period_end=end_date,
-        asset_class_id=ac_id, asset_class_name=ac_name,
+        series=series,
+        period_start=start_date,
+        period_end=end_date,
+        asset_class_id=ac_id,
+        asset_class_name=ac_name,
     )

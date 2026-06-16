@@ -18,15 +18,14 @@ router = APIRouter()
 @router.get("/")
 def index(request: Request, db: Session = Depends(get_db)):
     """List all income records."""
-    income_records = (
-        db.query(Income)
-        .order_by(Income.income_date.desc())
-        .all()
+    income_records = db.query(Income).order_by(Income.income_date.desc()).all()
+    return templates.TemplateResponse(
+        "income/index.html",
+        {
+            "request": request,
+            "income_records": income_records,
+        },
     )
-    return templates.TemplateResponse("income/index.html", {
-        "request": request,
-        "income_records": income_records,
-    })
 
 
 @router.get("/add")
@@ -34,12 +33,15 @@ def add_form(request: Request, db: Session = Depends(get_db)):
     """Show add income form."""
     accounts = db.query(Account).filter(Account.is_active == True).all()
     assets = db.query(Asset).filter(Asset.is_active == True).all()
-    return templates.TemplateResponse("income/form.html", {
-        "request": request,
-        "income": None,
-        "accounts": accounts,
-        "assets": assets,
-    })
+    return templates.TemplateResponse(
+        "income/form.html",
+        {
+            "request": request,
+            "income": None,
+            "accounts": accounts,
+            "assets": assets,
+        },
+    )
 
 
 @router.post("/add")

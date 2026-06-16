@@ -23,7 +23,12 @@ router = APIRouter()
 @router.get("/")
 def index(request: Request, db: Session = Depends(get_db)):
     """Settings overview."""
-    asset_classes = db.query(AssetClass).filter(AssetClass.is_active == True).order_by(AssetClass.display_order).all()
+    asset_classes = (
+        db.query(AssetClass)
+        .filter(AssetClass.is_active == True)
+        .order_by(AssetClass.display_order)
+        .all()
+    )
     currencies = db.query(Currency).all()
 
     # Get current strategic allocations
@@ -38,24 +43,34 @@ def index(request: Request, db: Session = Depends(get_db)):
             .order_by(StrategicAllocation.effective_date.desc())
             .first()
         )
-        allocations.append({
-            "asset_class_id": ac.id,
-            "asset_class_name": ac.name,
-            "target_percentage": float(sa.target_percentage) if sa else 0.0,
-        })
+        allocations.append(
+            {
+                "asset_class_id": ac.id,
+                "asset_class_name": ac.name,
+                "target_percentage": float(sa.target_percentage) if sa else 0.0,
+            }
+        )
 
-    return templates.TemplateResponse("settings/index.html", {
-        "request": request,
-        "asset_classes": asset_classes,
-        "currencies": currencies,
-        "allocations": allocations,
-    })
+    return templates.TemplateResponse(
+        "settings/index.html",
+        {
+            "request": request,
+            "asset_classes": asset_classes,
+            "currencies": currencies,
+            "allocations": allocations,
+        },
+    )
 
 
 @router.get("/allocation")
 def allocation_form(request: Request, db: Session = Depends(get_db)):
     """Show strategic allocation form."""
-    asset_classes = db.query(AssetClass).filter(AssetClass.is_active == True).order_by(AssetClass.display_order).all()
+    asset_classes = (
+        db.query(AssetClass)
+        .filter(AssetClass.is_active == True)
+        .order_by(AssetClass.display_order)
+        .all()
+    )
 
     allocations = []
     for ac in asset_classes:
@@ -68,17 +83,22 @@ def allocation_form(request: Request, db: Session = Depends(get_db)):
             .order_by(StrategicAllocation.effective_date.desc())
             .first()
         )
-        allocations.append({
-            "asset_class_id": str(ac.id),
-            "asset_class_name": ac.name,
-            "target_percentage": float(sa.target_percentage) if sa else 0.0,
-        })
+        allocations.append(
+            {
+                "asset_class_id": str(ac.id),
+                "asset_class_name": ac.name,
+                "target_percentage": float(sa.target_percentage) if sa else 0.0,
+            }
+        )
 
-    return templates.TemplateResponse("settings/allocation.html", {
-        "request": request,
-        "asset_classes": asset_classes,
-        "allocations": allocations,
-    })
+    return templates.TemplateResponse(
+        "settings/allocation.html",
+        {
+            "request": request,
+            "asset_classes": asset_classes,
+            "allocations": allocations,
+        },
+    )
 
 
 @router.post("/allocation")
@@ -113,14 +133,15 @@ async def allocation_submit(request: Request, db: Session = Depends(get_db)):
 def snapshots(request: Request, db: Session = Depends(get_db)):
     """View snapshots."""
     snapshot_list = (
-        db.query(MonthlySnapshot)
-        .order_by(MonthlySnapshot.snapshot_date.desc())
-        .all()
+        db.query(MonthlySnapshot).order_by(MonthlySnapshot.snapshot_date.desc()).all()
     )
-    return templates.TemplateResponse("settings/snapshots.html", {
-        "request": request,
-        "snapshots": snapshot_list,
-    })
+    return templates.TemplateResponse(
+        "settings/snapshots.html",
+        {
+            "request": request,
+            "snapshots": snapshot_list,
+        },
+    )
 
 
 @router.post("/snapshots/create")
@@ -140,7 +161,9 @@ def create_snapshot(
     for account in accounts:
         for asset in account.assets:
             if asset.is_active and asset.current_value:
-                value_myr = float(asset.current_value) * get_exchange_rate(db, asset.currency)
+                value_myr = float(asset.current_value) * get_exchange_rate(
+                    db, asset.currency
+                )
                 if account.is_liability:
                     total_liabilities += value_myr
                 else:
