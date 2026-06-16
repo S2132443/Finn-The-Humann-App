@@ -11,8 +11,12 @@ Assumptions, stated before any code:
 - The Python project lives entirely under `backend/`, with all source in
   `backend/app/`. There are no `.py` files elsewhere in `backend/`, so tooling
   scope is `backend/app/`.
-- The runtime is Python 3.11 (confirmed by `.cpython-311` bytecode and the
-  `python:3.11` Docker base), so both tools target py311.
+- The deployment target is Python 3.11 (confirmed by `.cpython-311` bytecode and
+  the `python:3.11` Docker base), so both tools use `target-version` py311. The
+  local dev interpreter is newer (3.14), which does not change the target.
+- black 26.1.0 and ruff 0.15.0 are already installed locally and are the current
+  releases. Pins match those exact versions so a local `black --check` never
+  disagrees with the pinned formatter.
 - There are no tests yet (slice A4), so any auto-fix that can change behavior is
   unsafe right now. black is formatting-only and safe; ruff `--fix` is not.
 - The project `CLAUDE.md` does not specify a line length, and the updated global
@@ -66,8 +70,8 @@ Minimum change to make the mandatory format-and-lint workflow enforceable.
 # Development
 pytest==7.4.3
 pytest-asyncio==0.21.1
-black==24.10.0
-ruff==0.8.4
+black==26.1.0
+ruff==0.15.0
 ```
 
 ### Config (`backend/pyproject.toml`)

@@ -6,7 +6,7 @@
 
 **Architecture:** Add pinned dev dependencies and a single `backend/pyproject.toml` configuring black (formatter) and ruff (lint-only) at line length 88. Reformat `backend/app/` once with black in an isolated commit, then record that commit in `.git-blame-ignore-revs` so blame skips the reformat.
 
-**Tech Stack:** Python 3.11, black 24.10.0, ruff 0.8.4, git.
+**Tech Stack:** Python 3.11 (deploy target; local dev is 3.14), black 26.1.0, ruff 0.15.0, git.
 
 Spec: [docs/superpowers/specs/2026-06-16-a1-tooling-config-design.md](../specs/2026-06-16-a1-tooling-config-design.md)
 
@@ -20,18 +20,19 @@ Spec: [docs/superpowers/specs/2026-06-16-a1-tooling-config-design.md](../specs/2
 - Modify: `backend/requirements.txt` (the `# Development` block near the end)
 - Create: `backend/pyproject.toml`
 
-- [ ] **Step 1: Install the two tools into the active environment**
+- [ ] **Step 1: Confirm the two tools are available at the pinned versions**
 
-Run (from `backend/`):
-```
-python -m pip install black==24.10.0 ruff==0.8.4
-```
-Expected: both install successfully. Confirm with:
+black 26.1.0 and ruff 0.15.0 are already installed in the local environment, so
+no install should be needed. Confirm (from `backend/`):
 ```
 python -m black --version
 python -m ruff --version
 ```
-Expected: `black, 24.10.0` and `ruff 0.8.4`.
+Expected: `black, 26.1.0` and `ruff 0.15.0`. If either is missing or a different
+version, install the exact pins:
+```
+python -m pip install black==26.1.0 ruff==0.15.0
+```
 
 - [ ] **Step 2: Add the tools to requirements.txt**
 
@@ -46,8 +47,8 @@ Change it to:
 # Development
 pytest==7.4.3
 pytest-asyncio==0.21.1
-black==24.10.0
-ruff==0.8.4
+black==26.1.0
+ruff==0.15.0
 ```
 
 - [ ] **Step 3: Create `backend/pyproject.toml`**
@@ -216,7 +217,7 @@ Expected: runs without config error (findings allowed).
 - [ ] **Step 3: deps install cleanly**
 
 Run (from `backend/`): `python -m pip install -r requirements.txt`
-Expected: black 24.10.0 and ruff 0.8.4 are present (already satisfied).
+Expected: black 26.1.0 and ruff 0.15.0 are present (already satisfied).
 
 - [ ] **Step 4: blame attributes real authors**
 
