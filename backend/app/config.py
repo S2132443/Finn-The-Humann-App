@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     BASE_CURRENCY: str = "MYR"
 
     # CORS
-    CORS_ORIGINS: list = ["http://localhost:5000", "http://127.0.0.1:5000"]
+    CORS_ORIGINS: list = ["http://localhost:8000", "http://127.0.0.1:8000"]
 
     # Broker API keys (all optional — app works without them)
     LUNO_API_KEY_ID: str = ""

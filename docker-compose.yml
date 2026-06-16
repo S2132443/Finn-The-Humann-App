@@ -33,6 +33,8 @@ services:
       SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
       BASE_CURRENCY: ${BASE_CURRENCY:-MYR}
       DEBUG: ${DEBUG:-false}
+      LUNO_API_KEY_ID: ${LUNO_API_KEY_ID:-}
+      LUNO_API_KEY_SECRET: ${LUNO_API_KEY_SECRET:-}
     ports:
       - "8000:8000"
     depends_on:
